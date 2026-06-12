@@ -13,12 +13,14 @@ public class FactorController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IReportService _reportService;
+    private readonly IReportTemplateService _reportTemplateService;
     private readonly ILogger<FactorController> _logger;
 
-    public FactorController(AppDbContext context, IReportService reportService, ILogger<FactorController> logger)
+    public FactorController(AppDbContext context, IReportService reportService, IReportTemplateService reportTemplateService, ILogger<FactorController> logger)
     {
         _context = context;
         _reportService = reportService;
+        _reportTemplateService = reportTemplateService;
         _logger = logger;
     }
 
@@ -287,6 +289,27 @@ public class FactorController : Controller
             }).ToList()
         };
 
+        // Check if a default template is configured in settings
+        var defaultTemplateId = await SettingsController.GetSettingIntAsync(_context, "DefaultFactorPrintTemplateId");
+        if (defaultTemplateId.HasValue)
+        {
+            try
+            {
+                var template = await _context.ReportTemplates.FindAsync(defaultTemplateId.Value);
+                if (template != null)
+                {
+                    // Generate Word report from template
+                    var docBytes = await _reportTemplateService.GenerateReportAsync(defaultTemplateId.Value, id);
+                    return File(docBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"Factor-{id}.docx");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to generate report from template {TemplateId}, falling back to default PDF", defaultTemplateId.Value);
+            }
+        }
+
+        // Fallback to default PDF
         var pdfBytes = _reportService.GenerateFactorReportPdf(model);
         return File(pdfBytes, "application/pdf", $"Factor-{id}.pdf");
     }
