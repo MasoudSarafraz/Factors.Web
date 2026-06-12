@@ -146,18 +146,20 @@ public class ReportTemplateController : Controller
             TemplateName = template.Name
         };
 
-        ViewBag.Factors = await _context.Factors
+        // Materialize first, then project (avoid CS0854: optional args in expression tree)
+        var factorsData = await _context.Factors
             .Include(f => f.Person)
             .Include(f => f.FactorItems)
             .OrderByDescending(f => f.CreateDate)
-            .Select(f => new
-            {
-                f.Id,
-                PersonName = f.Person != null ? f.Person.PersonName : "",
-                PersianDate = PersianDateService.ToPersian(f.CreateDate),
-                TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
-            })
             .ToListAsync();
+
+        ViewBag.Factors = factorsData.Select(f => new
+        {
+            f.Id,
+            PersonName = f.Person != null ? f.Person.PersonName : "",
+            PersianDate = PersianDateService.ToPersian(f.CreateDate),
+            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
+        }).ToList();
 
         return View(model);
     }
@@ -171,18 +173,20 @@ public class ReportTemplateController : Controller
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Factors = await _context.Factors
+            // Materialize first, then project (avoid CS0854)
+            var factorsData = await _context.Factors
                 .Include(f => f.Person)
                 .Include(f => f.FactorItems)
                 .OrderByDescending(f => f.CreateDate)
-                .Select(f => new
-                {
-                    f.Id,
-                    PersonName = f.Person != null ? f.Person.PersonName : "",
-                    PersianDate = PersianDateService.ToPersian(f.CreateDate),
-                    TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
-                })
                 .ToListAsync();
+
+            ViewBag.Factors = factorsData.Select(f => new
+            {
+                f.Id,
+                PersonName = f.Person != null ? f.Person.PersonName : "",
+                PersianDate = PersianDateService.ToPersian(f.CreateDate),
+                TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
+            }).ToList();
             return View(model);
         }
 
