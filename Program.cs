@@ -54,15 +54,17 @@ builder.Services.AddAntiforgery(options => { options.HeaderName = "X-CSRF-TOKEN"
 
 var app = builder.Build();
 
-// Database initialization & seeding
+// Apply migrations & seed data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
-        await DatabaseInitializer.InitializeAsync(services);
-        logger.LogInformation("Database initialized and seeded successfully.");
+        var context = services.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync();
+        await SeedData.InitializeAsync(services);
+        logger.LogInformation("Database initialized successfully.");
     }
     catch (Exception ex)
     {
