@@ -1,5 +1,3 @@
-using Factors.Web.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,7 +5,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Factors.Web.Migrations;
 
 /// <inheritdoc />
-[DbContext(typeof(AppDbContext))]
 [Migration("20240612120000_InitialCreate")]
 public partial class InitialCreate : Migration
 {
