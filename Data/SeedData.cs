@@ -13,8 +13,8 @@ public static class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
-        // Ensure database is created
-        await context.Database.EnsureCreatedAsync();
+        // Apply pending migrations (creates DB if not exists, applies new migrations)
+        await context.Database.MigrateAsync();
 
         // Seed Roles
         await SeedRolesAsync(roleManager);
