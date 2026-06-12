@@ -19,7 +19,6 @@ public interface IReportTemplateService
     Task<byte[]> GenerateBatchReportAsync(int templateId, List<int> factorIds);
     Task<ReportTemplateListViewModel> GetTemplatesAsync();
     Task DeleteTemplateAsync(int templateId);
-    Task<ReportTemplate> UpdateTemplateAsync(int templateId, string name, string? description, ReportTemplateType templateType, IFormFile? newFile = null);
     Task<List<TemplateInfo>> GetAvailableTemplatesAsync(ReportTemplateType? templateType = null);
     Task<List<FactorSearchResultItem>> SearchFactorsAsync(string? search, string? fromDateJalali, string? toDateJalali, int? personId);
 }
@@ -825,115 +824,6 @@ public class ReportTemplateService : IReportTemplateService
             TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
             TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
-    }
-
-    public async Task<ReportTemplate> UpdateTemplateAsync(int templateId, string name, string? description, ReportTemplateType templateType, IFormFile? newFile = null)
-    {
-        var template = await _context.ReportTemplates
-            .Include(t => t.Markers)
-            .FirstOrDefaultAsync(t => t.Id == templateId);
-
-        if (template == null)
-            throw new ArgumentException("قالب یافت نشد");
-
-        // Update metadata
-        template.Name = name;
-        template.Description = description;
-        template.TemplateType = templateType;
-
-        // If a new file is provided, replace the old one
-        if (newFile != null && newFile.Length > 0)
-        {
-            var ext = Path.GetExtension(newFile.FileName).ToLower();
-            if (ext != ".docx")
-                throw new ArgumentException("فقط فایل‌های Word (.docx) پذیرفته می‌شوند");
-
-            // Delete old file
-            if (!string.IsNullOrEmpty(template.FilePath) && File.Exists(template.FilePath))
-            {
-                File.Delete(template.FilePath);
-            }
-
-            // Save new file
-            var templatesDir = Path.Combine(_env.ContentRootPath, "Uploads", "Templates");
-            Directory.CreateDirectory(templatesDir);
-
-            var fileName = $"{Guid.NewGuid():N}{ext}";
-            var filePath = Path.Combine(templatesDir, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await newFile.CopyToAsync(stream);
-            }
-
-            template.FilePath = filePath;
-            template.OriginalFileName = newFile.FileName;
-
-            // Re-extract markers from new file
-            var extractedMarkers = ExtractMarkers(filePath);
-
-            // Remove old markers
-            _context.ReportTemplateMarkers.RemoveRange(template.Markers);
-
-            // Add new markers
-            foreach (var marker in extractedMarkers)
-            {
-                MarkerDataSource dataSource;
-                string? propertyPath = null;
-
-                if (marker.DataType == MarkerDataType.List)
-                {
-                    dataSource = templateType switch
-                    {
-                        ReportTemplateType.ProductList => MarkerDataSource.Product,
-                        ReportTemplateType.PersonList => MarkerDataSource.Person,
-                        _ => MarkerDataSource.FactorItem
-                    };
-                    propertyPath = null;
-                }
-                else if (marker.ParentListMarker != null)
-                {
-                    dataSource = templateType switch
-                    {
-                        ReportTemplateType.ProductList => MarkerDataSource.Product,
-                        ReportTemplateType.PersonList => MarkerDataSource.Person,
-                        _ => MarkerDataSource.FactorItem
-                    };
-                }
-                else
-                {
-                    dataSource = templateType switch
-                    {
-                        ReportTemplateType.ProductList => MarkerDataSource.Product,
-                        ReportTemplateType.PersonList => MarkerDataSource.Person,
-                        _ => MarkerDataSource.Factor
-                    };
-                }
-
-                // Auto-map known markers
-                var autoMap = AvailableProperties.TryAutoMap(marker.Name);
-                if (autoMap.HasValue)
-                {
-                    dataSource = autoMap.Value.DataSource;
-                    propertyPath = autoMap.Value.PropertyPath;
-                }
-
-                var markerEntity = new ReportTemplateMarker
-                {
-                    TemplateId = template.Id,
-                    MarkerName = marker.Name,
-                    DataType = marker.DataType,
-                    DataSource = dataSource,
-                    PropertyPath = propertyPath,
-                    ParentListMarker = marker.ParentListMarker
-                };
-
-                _context.ReportTemplateMarkers.Add(markerEntity);
-            }
-        }
-
-        await _context.SaveChangesAsync();
-        return template;
     }
 
     public async Task DeleteTemplateAsync(int templateId)

@@ -131,30 +131,6 @@ public class GenerateReportViewModel
     public int FactorId { get; set; }
 }
 
-public class ReportTemplateEditViewModel
-{
-    public int Id { get; set; }
-
-    [Required(ErrorMessage = "نام قالب الزامی است")]
-    [MaxLength(200)]
-    public string Name { get; set; } = string.Empty;
-
-    [MaxLength(500)]
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// نوع قالب گزارش
-    /// </summary>
-    public ReportTemplateType TemplateType { get; set; } = ReportTemplateType.SingleFactor;
-
-    /// <summary>
-    /// فایل قالب جدید (اختیاری — اگر خالی باشد فایل قبلی حفظ می‌شود)
-    /// </summary>
-    public IFormFile? TemplateFile { get; set; }
-
-    public string OriginalFileName { get; set; } = string.Empty;
-}
-
 /// <summary>
 /// مدل برای مودال انتخاب قالب در صفحه فاکتور
 /// </summary>

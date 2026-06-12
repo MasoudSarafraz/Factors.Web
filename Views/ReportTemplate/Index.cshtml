@@ -45,36 +45,10 @@ else
 
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header-compact d-flex justify-content-between align-items-center">
+                    <div class="card-header-compact">
                         <div class="d-flex align-items-center gap-2">
                             <span class="icon-badge icon-badge-blue"><i class="bi bi-file-earmark-word"></i></span>
                             <span class="header-title">@template.Name</span>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@template.Id">
-                                    <i class="bi bi-pencil-square"></i> ویرایش
-                                </a></li>
-                                <li><a class="dropdown-item" asp-action="MapMarkers" asp-route-templateId="@template.Id">
-                                    <i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها
-                                </a></li>
-                                <li><a class="dropdown-item" asp-action="Download" asp-route-id="@template.Id">
-                                    <i class="bi bi-download"></i> دانلود قالب
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form asp-action="Delete" asp-route-id="@template.Id" method="post"
-                                          onsubmit="return confirm('آیا از حذف این قالب مطمئن هستید؟')">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="bi bi-trash"></i> حذف
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
                         </div>
                     </div>
                     <div class="card-body">
@@ -100,13 +74,23 @@ else
                             </span>
                         </div>
                     </div>
-                    <div class="card-footer bg-white d-flex gap-2">
-                        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success btn-sm flex-fill">
-                            <i class="bi bi-magic"></i> تولید گزارش
+                    <div class="card-footer bg-white d-flex gap-2 flex-wrap">
+                        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success btn-sm flex-fill" title="تولید گزارش">
+                            <i class="bi bi-magic"></i> تولید
                         </a>
-                        <a asp-action="MapMarkers" asp-route-templateId="@template.Id" class="btn btn-outline-primary btn-sm flex-fill">
+                        <a asp-action="MapMarkers" asp-route-templateId="@template.Id" class="btn btn-outline-primary btn-sm flex-fill" title="نقشه‌برداری مارکرها">
                             <i class="bi bi-link-45deg"></i> مارکرها
                         </a>
+                        <a asp-action="Download" asp-route-id="@template.Id" class="btn btn-outline-secondary btn-sm" title="دانلود قالب">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@template.Id" method="post"
+                              onsubmit="return confirm('آیا از حذف این قالب مطمئن هستید؟')" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="حذف قالب">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
