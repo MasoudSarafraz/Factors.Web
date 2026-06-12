@@ -1,0 +1,228 @@
+@model Factors.Web.Models.ViewModels.ProductListViewModel
+@{
+    ViewData["Title"] = "محصولات";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-box"></i> محصولات</h4>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="bi bi-plus-lg"></i> محصول جدید
+    </button>
+</div>
+
+<!-- Search & Filter -->
+<form asp-action="Index" method="get" class="mb-3">
+    <div class="row g-2">
+        <div class="col-md-4">
+            <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در محصولات..." />
+        </div>
+        <div class="col-md-3">
+            <select name="categoryId" class="form-select">
+                <option value="">همه دسته‌بندی‌ها</option>
+                @foreach (var cat in Model.Categories)
+                {
+                    <option value="@cat.Id" selected="@(Model.FilterCategoryId == cat.Id)">@cat.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
+        </div>
+    </div>
+</form>
+
+<!-- Products Table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>نام محصول</th>
+                        <th>کد</th>
+                        <th>دسته‌بندی</th>
+                        <th>قیمت فعلی</th>
+                        <th>تاریخ ایجاد</th>
+                        <th style="width:180px">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Products.Any())
+                    {
+                        int row = 1;
+                        foreach (var item in Model.Products)
+                        {
+                            <tr>
+                                <td>@row</td>
+                                <td>@item.Name</td>
+                                <td><code>@item.Code</code></td>
+                                <td><span class="badge bg-secondary">@item.CategoryName</span></td>
+                                <td>
+                                    @if (item.Prices.Any())
+                                    {
+                                        <span>@item.Prices.OrderByDescending(p => p.Id).First().Price.ToString("N0") ریال</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">تعریف نشده</span>
+                                    }
+                                </td>
+                                <td>@item.PersianCreateDate</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editProduct(@item.Id)" title="ویرایش">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="addPrice(@item.Id, '@item.Name')" title="افزودن قیمت">
+                                        <i class="bi bi-tag"></i>
+                                    </button>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این محصول مطمئن هستید؟')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                            row++;
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">محصولی یافت نشد</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Create" method="post">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> محصول جدید</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام محصول</label>
+                        <input type="text" name="Name" class="form-control" required maxlength="100" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">کد محصول</label>
+                        <input type="text" name="Code" class="form-control" required maxlength="50" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">دسته‌بندی</label>
+                        <select name="CategoryId" class="form-select" required>
+                            <option value="">انتخاب کنید</option>
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <option value="@cat.Id">@cat.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> ثبت</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Edit" method="post">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> ویرایش محصول</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="Id" id="editId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام محصول</label>
+                        <input type="text" name="Name" id="editName" class="form-control" required maxlength="100" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">کد محصول</label>
+                        <input type="text" name="Code" id="editCode" class="form-control" required maxlength="50" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">دسته‌بندی</label>
+                        <select name="CategoryId" id="editCategoryId" class="form-select" required>
+                            <option value="">انتخاب کنید</option>
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <option value="@cat.Id">@cat.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Price Modal -->
+<div class="modal fade" id="priceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="AddPrice" method="post">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-tag"></i> افزودن قیمت - <span id="priceProductName"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="ProductId" id="priceProductId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">قیمت (ریال)</label>
+                        <input type="number" name="Price" class="form-control" required min="0" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تاریخ شروع</label>
+                        <input type="text" name="StartTime" class="form-control persian-datepicker" placeholder="1403/01/01" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تاریخ پایان</label>
+                        <input type="text" name="EndTime" class="form-control persian-datepicker" placeholder="1403/06/31" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> ثبت قیمت</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function editProduct(id) {
+        $.get('/Product/GetById/' + id, function(data) {
+            $('#editId').val(data.id);
+            $('#editName').val(data.name);
+            $('#editCode').val(data.code);
+            $('#editCategoryId').val(data.categoryId);
+            new bootstrap.Modal($('#editModal')).show();
+        });
+    }
+
+    function addPrice(productId, productName) {
+        $('#priceProductId').val(productId);
+        $('#priceProductName').text(productName);
+        new bootstrap.Modal($('#priceModal')).show();
+    }
+</script>
+}

@@ -1,0 +1,149 @@
+@model Factors.Web.Models.ViewModels.ReportFilterViewModel
+@{
+    ViewData["Title"] = "گزارشات";
+    var persons = ViewBag.Persons as IEnumerable<Factors.Web.Models.Entities.Person>;
+    var categories = ViewBag.Categories as IEnumerable<Factors.Web.Models.Entities.ProductCategory>;
+    var products = ViewBag.Products as IEnumerable<Factors.Web.Models.Entities.Product>;
+}
+
+<div class="row mb-3">
+    <div class="col-12">
+        <h4 class="fw-bold"><i class="bi bi-file-earmark-bar-graph"></i> گزارشات</h4>
+        <hr />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-funnel"></i> فیلتر گزارش</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="Generate" method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نوع گزارش</label>
+                        <select name="ReportType" class="form-select" id="reportType">
+                            <option value="factors">گزارش فاکتورها</option>
+                            <option value="sales">گزارش فروش</option>
+                            <option value="products">گزارش محصولات</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">از تاریخ</label>
+                        <input type="date" name="FromDate" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">تا تاریخ</label>
+                        <input type="date" name="ToDate" class="form-control" />
+                    </div>
+
+                    <div class="mb-3" id="personFilter">
+                        <label class="form-label fw-bold">مشتری</label>
+                        <select name="PersonId" class="form-select">
+                            <option value="">همه مشتریان</option>
+                            @if (persons != null)
+                            {
+                                foreach (var p in persons)
+                                {
+                                    <option value="@p.Id">@p.PersonName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="categoryFilter" style="display:none;">
+                        <label class="form-label fw-bold">دسته‌بندی</label>
+                        <select name="CategoryId" class="form-select">
+                            <option value="">همه دسته‌بندی‌ها</option>
+                            @if (categories != null)
+                            {
+                                foreach (var c in categories)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="productFilter" style="display:none;">
+                        <label class="form-label fw-bold">محصول</label>
+                        <select name="ProductId" class="form-select">
+                            <option value="">همه محصولات</option>
+                            @if (products != null)
+                            {
+                                foreach (var p in products)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        <i class="bi bi-file-earmark-pdf"></i> تولید گزارش PDF
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> راهنمای گزارشات</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-receipt-cutoff text-primary" style="font-size:2rem;"></i>
+                                <h6 class="mt-2">گزارش فاکتورها</h6>
+                                <p class="text-muted small">لیست تمام فاکتورها با امکان فیلتر بر اساس تاریخ و مشتری. شامل جزئیات هر فاکتور و مبلغ کل</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-graph-up text-success" style="font-size:2rem;"></i>
+                                <h6 class="mt-2">گزارش فروش</h6>
+                                <p class="text-muted small">خلاصه فروش بر اساس بازه زمانی. شامل تعداد فاکتورها، مبلغ کل فروش و آمار تفکیکی</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-box text-warning" style="font-size:2rem;"></i>
+                                <h6 class="mt-2">گزارش محصولات</h6>
+                                <p class="text-muted small">لیست محصولات با فیلتر دسته‌بندی. شامل اطلاعات محصول و قیمت‌های فعال</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $('#reportType').change(function() {
+        var type = $(this).val();
+        $('#personFilter').hide();
+        $('#categoryFilter').hide();
+        $('#productFilter').hide();
+
+        if (type === 'factors' || type === 'sales') {
+            $('#personFilter').show();
+        } else if (type === 'products') {
+            $('#categoryFilter').show();
+            $('#productFilter').show();
+        }
+    });
+</script>
+}

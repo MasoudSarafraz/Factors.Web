@@ -1,0 +1,13 @@
+@using Microsoft.AspNetCore.Identity
+@using Factors.Web.Models.Entities
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+        <button type="submit" class="btn btn-link nav-link text-dark">
+            <i class="bi bi-box-arrow-left"></i> خروج
+        </button>
+    </form>
+}

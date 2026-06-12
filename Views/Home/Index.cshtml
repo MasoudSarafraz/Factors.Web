@@ -1,0 +1,179 @@
+@model Factors.Web.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "داشبورد";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="fw-bold"><i class="bi bi-speedometer2"></i> داشبورد</h4>
+        <hr />
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm bg-primary text-white rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">تعداد فاکتورها</h6>
+                                        <h3 class="fw-bold mb-0">@Model.TotalFactors</h3>
+                    </div>
+                    <i class="bi bi-receipt-cutoff" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm bg-success text-white rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">فروش کل (ریال)</h6>
+                                        <h3 class="fw-bold mb-0">@Model.TotalSalesAmount.ToString("N0")</h3>
+                    </div>
+                    <i class="bi bi-currency-exchange" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm bg-info text-white rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50">تعداد محصولات</h6>
+                                        <h3 class="fw-bold mb-0">@Model.TotalProducts</h3>
+                    </div>
+                    <i class="bi bi-box" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm bg-warning text-dark rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-dark-50">تعداد مشتریان</h6>
+                                        <h3 class="fw-bold mb-0">@Model.TotalPersons</h3>
+                    </div>
+                    <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body text-center">
+                <i class="bi bi-folder text-primary" style="font-size: 2rem;"></i>
+                <h6 class="mt-2 text-muted">دسته‌بندی‌ها</h6>
+                <h4 class="fw-bold">@Model.TotalCategories</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body text-center">
+                <i class="bi bi-box-seam text-success" style="font-size: 2rem;"></i>
+                <h6 class="mt-2 text-muted">بسته‌ها</h6>
+                <h4 class="fw-bold">@Model.TotalPacks</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body text-center">
+                <i class="bi bi-person-gear text-info" style="font-size: 2rem;"></i>
+                <h6 class="mt-2 text-muted">کاربران</h6>
+                <h4 class="fw-bold">@Model.TotalUsers</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Factors -->
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history"></i> آخرین فاکتورها</h6>
+                <a asp-controller="Factor" asp-action="Index" class="btn btn-sm btn-outline-primary">مشاهده همه</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>شماره</th>
+                                <th>مشتری</th>
+                                <th>تاریخ</th>
+                                <th>تعداد آیتم</th>
+                                <th>مبلغ کل</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentFactors.Any())
+                            {
+                                foreach (var factor in Model.RecentFactors)
+                                {
+                                    <tr>
+                                        <td>@factor.Id</td>
+                                        <td>@factor.PersonName</td>
+                                        <td>@factor.PersianCreateDate</td>
+                                        <td>@factor.TotalItems</td>
+                                        <td>@factor.TotalAmount.ToString("N0") ریال</td>
+                                        <td>
+                                            <a asp-controller="Factor" asp-action="Details" asp-route-id="@factor.Id" class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">فاکتوری ثبت نشده است</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy"></i> پرفروش‌ترین محصولات</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    @if (Model.TopProducts.Any())
+                    {
+                        foreach (var product in Model.TopProducts)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">@product.ProductName</h6>
+                                    <small class="text-muted">تعداد: @product.TotalQty</small>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">@product.TotalAmount.ToString("N0")</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="list-group-item text-center text-muted py-4">داده‌ای موجود نیست</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

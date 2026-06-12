@@ -1,0 +1,111 @@
+@model Factors.Web.Models.ViewModels.FactorViewModel
+@{
+    ViewData["Title"] = $"فاکتور شماره {Model.Id}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-receipt-cutoff"></i> فاکتور شماره @Model.Id</h4>
+    <div>
+        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success" target="_blank">
+            <i class="bi bi-printer"></i> چاپ PDF
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-right"></i> بازگشت
+        </a>
+    </div>
+</div>
+
+<!-- Factor Header -->
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-hash text-primary fs-5 me-2"></i>
+                    <span class="text-muted">شماره فاکتور:</span>
+                    <strong class="ms-2 fs-5">@Model.Id</strong>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-person text-primary fs-5 me-2"></i>
+                    <span class="text-muted">مشتری:</span>
+                    <strong class="ms-2">@Model.PersonName</strong>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-calendar text-primary fs-5 me-2"></i>
+                    <span class="text-muted">تاریخ:</span>
+                    <strong class="ms-2">@Model.PersianCreateDate</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Factor Items -->
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul"></i> آیتم‌های فاکتور</h6>
+        <span class="badge bg-info">@Model.TotalItems آیتم</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>نام کالا/بسته</th>
+                        <th>تعداد</th>
+                        <th>قیمت واحد (ریال)</th>
+                        <th>جمع (ریال)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int row = 1;
+                        foreach (var item in Model.Items)
+                        {
+                            var isPack = item.PackId.HasValue && !item.ParentId.HasValue;
+                            var isSubItem = item.ParentId.HasValue;
+                            var rowClass = isPack ? "table-active fw-bold" : (isSubItem ? "table-light" : "");
+                            var indent = isSubItem ? "<i class=\"bi bi-arrow-return-left ms-2\"></i>" : "";
+                            var icon = isPack ? "<i class=\"bi bi-box-seam\"></i> " : "<i class=\"bi bi-box\"></i> ";
+
+                            <tr class="@rowClass">
+                                <td>@row</td>
+                                <td>@Html.Raw(indent)@Html.Raw(icon)@item.ProductName</td>
+                                <td>@item.Qty.ToString("N0")</td>
+                                <td>@item.Price.ToString("N0")</td>
+                                <td>@item.TotalPrice.ToString("N0")</td>
+                            </tr>
+                            row++;
+                        }
+                    }
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="text-start fw-bold fs-5">جمع کل:</td>
+                        <td class="fw-bold text-success fs-5">@Model.TotalAmount.ToString("N0") ریال</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex gap-2">
+    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success" target="_blank">
+        <i class="bi bi-printer"></i> چاپ PDF
+    </a>
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('آیا از حذف این فاکتور مطمئن هستید؟')">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash"></i> حذف فاکتور
+            </button>
+        </form>
+    }
+</div>

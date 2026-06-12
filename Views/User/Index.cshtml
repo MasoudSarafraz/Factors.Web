@@ -1,0 +1,309 @@
+@model Factors.Web.Models.ViewModels.UserListViewModel
+@{
+    ViewData["Title"] = "مدیریت کاربران";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="bi bi-person-gear"></i> مدیریت کاربران</h4>
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="bi bi-person-plus"></i> کاربر جدید
+        </button>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+            <i class="bi bi-shield-plus"></i> نقش جدید
+        </button>
+    </div>
+</div>
+
+<!-- Search -->
+<form asp-action="Index" method="get" class="mb-3">
+    <div class="row g-2">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در کاربران..." />
+                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Roles Section -->
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-header bg-warning text-dark">
+        <h6 class="mb-0"><i class="bi bi-shield-check"></i> نقش‌های سیستم</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>نام نقش</th>
+                        <th>توضیحات</th>
+                        <th>سطح دسترسی</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in Model.AvailableRoles)
+                    {
+                        <tr>
+                            <td><span class="badge bg-primary">@role.Name</span></td>
+                            <td>@role.Description</td>
+                            <td>
+                                @switch (role.Name)
+                                {
+                                    case "Admin":
+                                        <span class="text-danger">دسترسی کامل</span>
+                                        break;
+                                    case "Manager":
+                                        <span class="text-warning">مدیریت فاکتور و گزارش</span>
+                                        break;
+                                    case "User":
+                                        <span class="text-info">مشاهده و ایجاد فاکتور</span>
+                                        break;
+                                    default:
+                                        <span class="text-muted">سفارشی</span>
+                                        break;
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-people"></i> کاربران سیستم</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>نام کاربری</th>
+                        <th>نام کامل</th>
+                        <th>ایمیل</th>
+                        <th>نقش‌ها</th>
+                        <th>وضعیت</th>
+                        <th>آخرین ورود</th>
+                        <th style="width:180px">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Users.Any())
+                    {
+                        int row = 1;
+                        foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>@row</td>
+                                <td><code>@user.Username</code></td>
+                                <td>@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>
+                                    @foreach (var roleName in user.Roles.Split(", ", StringSplitOptions.RemoveEmptyEntries))
+                                    {
+                                        <span class="badge bg-info">@roleName</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success">فعال</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">غیرفعال</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.LastLoginDate.HasValue)
+                                    {
+                                        <small>@Factors.Web.Models.Entities.PersianDateService.ToPersian(user.LastLoginDate, true)</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">-</small>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editUser(@user.Id)" title="ویرایش">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-@(user.IsActive ? "secondary" : "success")" title="@(user.IsActive ? "غیرفعال" : "فعال") کردن">
+                                            <i class="bi bi-@(user.IsActive ? "pause" : "play")-circle"></i>
+                                        </button>
+                                    </form>
+                                    <form asp-action="Delete" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این کاربر مطمئن هستید؟')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            row++;
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">کاربری یافت نشد</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Create" method="post">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> کاربر جدید</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام کامل</label>
+                        <input type="text" name="FullName" class="form-control" required maxlength="150" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام کاربری</label>
+                        <input type="text" name="Username" class="form-control" required maxlength="50" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ایمیل</label>
+                        <input type="email" name="Email" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">رمز عبور</label>
+                        <input type="password" name="Password" class="form-control" required minlength="6" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نقش‌ها</label>
+                        @foreach (var role in Model.AvailableRoles)
+                        {
+                            <div class="form-check">
+                                <input type="checkbox" name="SelectedRoles" value="@role.Name" class="form-check-input" id="role-@role.Id" />
+                                <label class="form-check-label" for="role-@role.Id">@role.Name - @role.Description</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> ایجاد کاربر</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Edit" method="post">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> ویرایش کاربر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="Id" id="editUserId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام کامل</label>
+                        <input type="text" name="FullName" id="editFullName" class="form-control" required maxlength="150" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ایمیل</label>
+                        <input type="email" name="Email" id="editEmail" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">رمز عبور جدید (خالی = بدون تغییر)</label>
+                        <input type="password" name="NewPassword" id="editPassword" class="form-control" minlength="6" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="IsActive" id="editIsActive" class="form-check-input" value="true" />
+                            <label class="form-check-label" for="editIsActive">حساب فعال</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نقش‌ها</label>
+                        <div id="editRolesContainer">
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <div class="form-check">
+                                    <input type="checkbox" name="SelectedRoles" value="@role.Name" class="form-check-input edit-role" id="edit-role-@role.Id" />
+                                    <label class="form-check-label" for="edit-role-@role.Id">@role.Name</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Role Modal -->
+<div class="modal fade" id="createRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="CreateRole" method="post">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-shield-plus"></i> نقش جدید</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">نام نقش (انگلیسی)</label>
+                        <input type="text" name="roleName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">توضیحات</label>
+                        <input type="text" name="description" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> ایجاد نقش</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function editUser(id) {
+        $.get('/User/GetById/' + id, function(data) {
+            $('#editUserId').val(data.id);
+            $('#editFullName').val(data.fullName);
+            $('#editEmail').val(data.email);
+            $('#editIsActive').prop('checked', data.isActive);
+            $('#editPassword').val('');
+
+            // Reset all role checkboxes
+            $('.edit-role').prop('checked', false);
+
+            // Check user's roles
+            if (data.roles) {
+                data.roles.forEach(function(role) {
+                    $('.edit-role[value="' + role + '"]').prop('checked', true);
+                });
+            }
+
+            new bootstrap.Modal($('#editUserModal')).show();
+        });
+    }
+</script>
+}
