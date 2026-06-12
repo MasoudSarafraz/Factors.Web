@@ -5,18 +5,22 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
 
 namespace Factors.Web.Services;
 
 public interface IReportTemplateService
 {
-    Task<ReportTemplate> UploadTemplateAsync(string name, string? description, IFormFile file);
+    Task<ReportTemplate> UploadTemplateAsync(string name, string? description, IFormFile file, ReportTemplateType templateType);
     List<ExtractedMarker> ExtractMarkers(string filePath);
     Task SaveMarkerMappingsAsync(SaveMarkerMappingViewModel model);
     Task<MarkerMappingViewModel> GetMarkerMappingAsync(int templateId);
     Task<byte[]> GenerateReportAsync(int templateId, int factorId);
+    Task<byte[]> GenerateBatchReportAsync(int templateId, List<int> factorIds);
     Task<ReportTemplateListViewModel> GetTemplatesAsync();
     Task DeleteTemplateAsync(int templateId);
+    Task<List<TemplateInfo>> GetAvailableTemplatesAsync(ReportTemplateType? templateType = null);
+    Task<List<FactorSearchResultItem>> SearchFactorsAsync(string? search, string? fromDateJalali, string? toDateJalali, int? personId);
 }
 
 public class ReportTemplateService : IReportTemplateService
@@ -37,7 +41,7 @@ public class ReportTemplateService : IReportTemplateService
         _logger = logger;
     }
 
-    public async Task<ReportTemplate> UploadTemplateAsync(string name, string? description, IFormFile file)
+    public async Task<ReportTemplate> UploadTemplateAsync(string name, string? description, IFormFile file, ReportTemplateType templateType)
     {
         var templatesDir = Path.Combine(_env.ContentRootPath, "Uploads", "Templates");
         Directory.CreateDirectory(templatesDir);
@@ -58,6 +62,7 @@ public class ReportTemplateService : IReportTemplateService
             Description = description,
             FilePath = filePath,
             OriginalFileName = file.FileName,
+            TemplateType = templateType,
             CreateDate = DateTime.UtcNow
         };
 
@@ -66,28 +71,38 @@ public class ReportTemplateService : IReportTemplateService
 
         foreach (var marker in extractedMarkers)
         {
-            // Auto-mapping: مارکرهای شناخته‌شده خودکار نقشه‌برداری می‌شوند
             MarkerDataSource dataSource;
             string? propertyPath = null;
 
             if (marker.DataType == MarkerDataType.List)
             {
-                // مارکر لیستی فقط ساختاری است → نیاز به نقشه‌برداری ندارد
-                dataSource = MarkerDataSource.FactorItem;
+                dataSource = templateType switch
+                {
+                    ReportTemplateType.ProductList => MarkerDataSource.Product,
+                    ReportTemplateType.PersonList => MarkerDataSource.Person,
+                    _ => MarkerDataSource.FactorItem
+                };
                 propertyPath = null;
             }
             else if (marker.ParentListMarker != null)
             {
-                // زیرمجموعه جدول لیستی → منبع داده آیتم فاکتور
-                dataSource = MarkerDataSource.FactorItem;
+                dataSource = templateType switch
+                {
+                    ReportTemplateType.ProductList => MarkerDataSource.Product,
+                    ReportTemplateType.PersonList => MarkerDataSource.Person,
+                    _ => MarkerDataSource.FactorItem
+                };
             }
             else
             {
-                // مارکر تکی مستقل → فاکتور
-                dataSource = MarkerDataSource.Factor;
+                dataSource = templateType switch
+                {
+                    ReportTemplateType.ProductList => MarkerDataSource.Product,
+                    ReportTemplateType.PersonList => MarkerDataSource.Person,
+                    _ => MarkerDataSource.Factor
+                };
             }
 
-            // تلاش برای auto-mapping
             var autoMap = AvailableProperties.TryAutoMap(marker.Name);
             if (autoMap.HasValue && marker.DataType != MarkerDataType.List)
             {
@@ -101,7 +116,8 @@ public class ReportTemplateService : IReportTemplateService
                 MarkerName = marker.Name,
                 DataType = marker.DataType,
                 DataSource = dataSource,
-                PropertyPath = propertyPath
+                PropertyPath = propertyPath,
+                ParentListMarker = marker.ParentListMarker
             };
             _context.ReportTemplateMarkers.Add(templateMarker);
         }
@@ -134,7 +150,6 @@ public class ReportTemplateService : IReportTemplateService
                     if (seenMarkers.Contains(markerName)) continue;
                     seenMarkers.Add(markerName);
 
-                    // آیا جدولی بلافاصله بعد از این پاراگراف وجود دارد؟
                     var isList = (i + 1 < elements.Count && elements[i + 1] is Table);
 
                     markers.Add(new ExtractedMarker
@@ -153,7 +168,6 @@ public class ReportTemplateService : IReportTemplateService
             }
             else if (elements[i] is Table standaloneTable)
             {
-                // جدول بدون مارکر لیستی قبلش
                 ExtractTableMarkers(standaloneTable, markers, seenMarkers, null);
             }
         }
@@ -175,8 +189,6 @@ public class ReportTemplateService : IReportTemplateService
                     if (seenMarkers.Contains(markerName)) continue;
                     seenMarkers.Add(markerName);
 
-                    // اگر parentListMarker وجود دارد، این مارکر زیرمجموعه لیست است → Single
-                    // اگر parentListMarker null است، این مارکر در جدول مستقل است → Single
                     markers.Add(new ExtractedMarker
                     {
                         Name = markerName,
@@ -196,6 +208,8 @@ public class ReportTemplateService : IReportTemplateService
             var marker = await _context.ReportTemplateMarkers.FindAsync(mapping.MarkerId);
             if (marker != null)
             {
+                if (marker.DataType == MarkerDataType.List) continue;
+
                 marker.DataSource = mapping.DataSource;
                 marker.PropertyPath = mapping.PropertyPath;
             }
@@ -211,21 +225,68 @@ public class ReportTemplateService : IReportTemplateService
 
         if (template == null) throw new ArgumentException("قالب یافت نشد");
 
+        var allMarkers = template.Markers.ToList();
+
+        var groups = new List<MarkerMappingGroup>();
+
+        var listMarkers = allMarkers.Where(m => m.DataType == MarkerDataType.List).ToList();
+        foreach (var listMarker in listMarkers)
+        {
+            var childMarkers = allMarkers
+                .Where(m => m.ParentListMarker == listMarker.MarkerName)
+                .Select(m => new MarkerMappingItem
+                {
+                    MarkerId = m.Id,
+                    MarkerName = m.MarkerName,
+                    DataType = m.DataType,
+                    ParentListMarker = m.ParentListMarker,
+                    DataSource = m.DataSource,
+                    PropertyPath = m.PropertyPath,
+                    AvailableProperties = AvailableProperties.GetPropertiesForDataSource(m.DataSource)
+                }).ToList();
+
+            groups.Add(new MarkerMappingGroup
+            {
+                MainMarker = new MarkerMappingItem
+                {
+                    MarkerId = listMarker.Id,
+                    MarkerName = listMarker.MarkerName,
+                    DataType = listMarker.DataType,
+                    DataSource = listMarker.DataSource,
+                    PropertyPath = listMarker.PropertyPath,
+                    AvailableProperties = new List<PropertyOption>()
+                },
+                ChildMarkers = childMarkers
+            });
+        }
+
+        var standaloneMarkers = allMarkers
+            .Where(m => m.DataType == MarkerDataType.Single && m.ParentListMarker == null)
+            .ToList();
+
+        foreach (var marker in standaloneMarkers)
+        {
+            groups.Add(new MarkerMappingGroup
+            {
+                MainMarker = new MarkerMappingItem
+                {
+                    MarkerId = marker.Id,
+                    MarkerName = marker.MarkerName,
+                    DataType = marker.DataType,
+                    DataSource = marker.DataSource,
+                    PropertyPath = marker.PropertyPath,
+                    AvailableProperties = AvailableProperties.GetPropertiesForDataSource(marker.DataSource)
+                },
+                ChildMarkers = new List<MarkerMappingItem>()
+            });
+        }
+
         return new MarkerMappingViewModel
         {
             TemplateId = template.Id,
             TemplateName = template.Name,
-            Markers = template.Markers.Select(m => new MarkerMappingItem
-            {
-                MarkerId = m.Id,
-                MarkerName = m.MarkerName,
-                DataType = m.DataType,
-                DataSource = m.DataSource,
-                PropertyPath = m.PropertyPath,
-                AvailableProperties = m.DataType == MarkerDataType.List
-                    ? new List<PropertyOption>()  // لیستی نیاز به پراپرتی ندارد
-                    : AvailableProperties.GetPropertiesForDataSource(m.DataSource)
-            }).ToList()
+            TemplateType = template.TemplateType,
+            Groups = groups
         };
     }
 
@@ -264,17 +325,17 @@ public class ReportTemplateService : IReportTemplateService
                 .Select(m => m.MarkerName)
                 .ToList();
 
-            // ⚠️ ترتیب مهم است:
-            // مرحله ۱: ابتدا مارکرهای لیستی و کلون سطرهای جدول (قبل از جایگزینی مارکرهای تکی)
+            // مرحله ۱: ابتدا مارکرهای لیستی و کلون سطرهای جدول
             ProcessItemTables(body, factorItemData, listMarkerNames, factorData);
 
-            // مرحله ۲: حذف پاراگراف‌های مارکر لیستی (مثل {Items})
+            // مرحله ۲: حذف پاراگراف‌های مارکر لیستی
             RemoveListMarkerParagraphs(body, listMarkerNames);
 
-            // مرحله ۳: جایگزینی مارکرهای تکی در کل سند
-            ReplaceAllMarkers(body, factorData);
+            // مرحله ۳: جایگزینی مارکرهای تکی در کل سند (شامل هدر و فوتر)
+            var mainPart = doc.MainDocumentPart!;
+            ReplaceAllMarkersInPart(mainPart, factorData);
 
-            doc.MainDocumentPart!.Document.Save();
+            mainPart.Document.Save();
         }
         catch
         {
@@ -285,6 +346,35 @@ public class ReportTemplateService : IReportTemplateService
         var result = await File.ReadAllBytesAsync(tempOutput);
         File.Delete(tempOutput);
         return result;
+    }
+
+    /// <summary>
+    /// جایگزینی مارکرها در تمام بخش‌های سند (بدنه، هدر، فوتر)
+    /// </summary>
+    private void ReplaceAllMarkersInPart(MainDocumentPart mainPart, Dictionary<string, string> replacements)
+    {
+        // بدنه اصلی
+        foreach (var para in mainPart.Document.Body!.Descendants<Paragraph>())
+        {
+            ReplaceMarkersInParagraph(para, replacements);
+        }
+
+        // هدرها و فوترها
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            foreach (var para in headerPart.Header.Descendants<Paragraph>())
+            {
+                ReplaceMarkersInParagraph(para, replacements);
+            }
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            foreach (var para in footerPart.Footer.Descendants<Paragraph>())
+            {
+                ReplaceMarkersInParagraph(para, replacements);
+            }
+        }
     }
 
     private Dictionary<string, string> BuildFactorData(Factor factor)
@@ -298,29 +388,27 @@ public class ReportTemplateService : IReportTemplateService
 
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            // شناسایی
             ["Id"] = factor.Id.ToString(),
             ["Invoicenumber"] = factor.Id.ToString(),
 
-            // تاریخ
             ["PersianCreateDate"] = PersianDateService.ToPersian(factor.CreateDate, true),
             ["date"] = PersianDateService.ToPersian(factor.CreateDate),
+            ["CreateDate"] = factor.CreateDate.ToString("yyyy/MM/dd"),
 
-            // مشتری
             ["PersonName"] = factor.Person?.PersonName ?? "",
             ["Buyerdetails"] = factor.Person?.PersonName ?? "",
             ["PersonType"] = personType,
+            ["PersonId"] = factor.PersonId.ToString(),
 
-            // مبالغ
             ["TotalAmount"] = totalAmount.ToString("N0"),
             ["sum"] = totalAmount.ToString("N0"),
             ["Totalup"] = totalAmount.ToString("N0"),
             ["TaxAmount"] = taxAmount.ToString("N0"),
             ["tax"] = taxAmount.ToString("N0"),
+            ["TaxPercent"] = "9",
             ["TotalWithTax"] = totalWithTax.ToString("N0"),
             ["Totalsum"] = totalWithTax.ToString("N0"),
 
-            // تعداد
             ["TotalItems"] = (factor.FactorItems?.Count ?? 0).ToString(),
             ["TotalQuantity"] = totalQty.ToString("N0"),
         };
@@ -342,28 +430,27 @@ public class ReportTemplateService : IReportTemplateService
 
             result.Add(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                // نام و شرح
                 ["ProductName"] = productName,
                 ["Descriptionofthepiece"] = productName,
                 ["ProductCode"] = productCode,
                 ["CategoryName"] = categoryName,
 
-                // تعداد
                 ["Qty"] = item.Qty.ToString("N0"),
                 ["PartQty"] = item.Qty.ToString("N0"),
 
-                // قیمت
                 ["Price"] = item.Price.ToString("N0"),
                 ["price"] = item.Price.ToString("N0"),
                 ["TotalPrice"] = (item.Price * item.Qty).ToString("N0"),
                 ["total"] = (item.Price * item.Qty).ToString("N0"),
 
-                // سطر
                 ["RowNumber"] = (i + 1).ToString(),
 
-                // بسته
                 ["IsPack"] = isPack ? "بله" : "خیر",
                 ["PackName"] = packName,
+                ["PackId"] = item.PackId?.ToString() ?? "",
+
+                ["ItemId"] = item.Id.ToString(),
+                ["SalableId"] = item.SalableId?.ToString() ?? "",
             });
         }
 
@@ -375,11 +462,11 @@ public class ReportTemplateService : IReportTemplateService
     /// </summary>
     private void ProcessItemTables(Body body, List<Dictionary<string, string>> factorItemData, List<string> listMarkerNames, Dictionary<string, string> factorData)
     {
-        // نام مارکرهایی که مربوط به آیتم فاکتور هستند
         var itemMarkerNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "ProductName", "Qty", "Price", "TotalPrice", "RowNumber",
-            "Descriptionofthepiece", "PartQty", "price", "total"
+            "Descriptionofthepiece", "PartQty", "price", "total",
+            "ProductCode", "CategoryName", "IsPack", "PackName"
         };
 
         var tables = body.Elements<Table>().ToList();
@@ -389,9 +476,7 @@ public class ReportTemplateService : IReportTemplateService
             var rows = table.Elements<TableRow>().ToList();
             if (rows.Count < 2) continue;
 
-            // پیدا کردن سطر داده (آخرین سطری که حاوی مارکر باشد)
             TableRow? dataRow = null;
-            int dataRowIndex = -1;
 
             for (int r = rows.Count - 1; r >= 1; r--)
             {
@@ -399,14 +484,12 @@ public class ReportTemplateService : IReportTemplateService
                 if (MarkerRegex.IsMatch(rowText))
                 {
                     dataRow = rows[r];
-                    dataRowIndex = r;
                     break;
                 }
             }
 
             if (dataRow == null) continue;
 
-            // بررسی آیا مارکرهای این سطر مربوط به آیتم فاکتور هستند
             var rowMarkerNames = new List<string>();
             foreach (var cell in dataRow.Elements<TableCell>())
             {
@@ -421,17 +504,13 @@ public class ReportTemplateService : IReportTemplateService
             var isItemTable = rowMarkerNames.Any(name => itemMarkerNames.Contains(name));
             if (!isItemTable) continue;
 
-            // کلون سطر الگو قبل از هر تغییر
             var templateRow = (TableRow)dataRow.CloneNode(true);
 
-            // حذف سطر داده اصلی
             dataRow.Remove();
 
-            // اگر آیتمی وجود ندارد، حداقل یک سطر خالی اضافه کن
             if (factorItemData.Count == 0)
             {
                 var emptyRow = (TableRow)templateRow.CloneNode(true);
-                // پاک کردن متن مارکرها
                 foreach (var cell in emptyRow.Elements<TableCell>())
                 {
                     foreach (var para in cell.Elements<Paragraph>())
@@ -443,7 +522,6 @@ public class ReportTemplateService : IReportTemplateService
             }
             else
             {
-                // اضافه کردن سطر برای هر آیتم
                 for (int i = 0; i < factorItemData.Count; i++)
                 {
                     var itemData = factorItemData[i];
@@ -467,37 +545,31 @@ public class ReportTemplateService : IReportTemplateService
 
     /// <summary>
     /// حذف پاراگراف‌های مارکر لیستی
+    /// فقط مارکرها رو خالی می‌کنه تا ساختار و فاصله‌های پاراگراف حفظ بشه
     /// </summary>
     private void RemoveListMarkerParagraphs(Body body, List<string> listMarkerNames)
     {
         if (listMarkerNames.Count == 0) return;
 
-        var toRemove = new List<Paragraph>();
-        foreach (var para in body.Elements<Paragraph>())
+        foreach (var para in body.Elements<Paragraph>().ToList())
         {
             var text = (para.InnerText ?? "").Trim();
             foreach (var markerName in listMarkerNames)
             {
                 if (text.Equals($"{{{markerName}}}", StringComparison.OrdinalIgnoreCase))
                 {
-                    toRemove.Add(para);
+                    ClearAllText(para);
                     break;
                 }
             }
         }
-
-        foreach (var para in toRemove)
-        {
-            para.Remove();
-        }
     }
 
     /// <summary>
-    /// جایگزینی تمام مارکرها در کل سند
+    /// جایگزینی تمام مارکرها در کل سند (فقط بدنه)
     /// </summary>
     private void ReplaceAllMarkers(Body body, Dictionary<string, string> replacements)
     {
-        // جایگزینی در تمام پاراگراف‌ها (شامل پاراگراف‌های داخل جدول)
         foreach (var para in body.Descendants<Paragraph>())
         {
             ReplaceMarkersInParagraph(para, replacements);
@@ -505,53 +577,156 @@ public class ReportTemplateService : IReportTemplateService
     }
 
     /// <summary>
-    /// جایگزینی مارکرها در یک پاراگراف - مقاوم در برابر Runهای تقسیم‌شده
+    /// جایگزینی مارکرها در یک پاراگراف با حفظ کامل فرمت‌ها
+    /// رویکرد: اول Runهای تقسیم‌شده رو ادغام کن، بعد فقط متن هر Run رو عوض کن
     /// </summary>
     private void ReplaceMarkersInParagraph(Paragraph paragraph, Dictionary<string, string> replacements)
     {
         var fullText = paragraph.InnerText ?? "";
         if (!MarkerRegex.IsMatch(fullText)) return;
 
-        // جمع‌آوری فرمت اولین Run برای حفظ استایل
-        var firstRun = paragraph.Elements<Run>().FirstOrDefault();
-        var runProperties = firstRun?.RunProperties?.CloneNode(true) as RunProperties;
+        // مرحله ۱: ادغام Runهایی که یک مارکر رو تقسیم کردن
+        MergeSplitMarkerRuns(paragraph);
 
-        // ساخت متن جایگزین‌شده
-        var replacedText = fullText;
-        foreach (var kvp in replacements)
-        {
-            var pattern = @"\{" + Regex.Escape(kvp.Key) + @"\}";
-            replacedText = Regex.Replace(replacedText, pattern, kvp.Value, RegexOptions.IgnoreCase);
-        }
-
-        // اگر تغییری نکرده، خروج
-        if (replacedText == fullText) return;
-
-        // حذف تمام Runهای قدیمی
+        // مرحله ۲: جایگزینی مارکرها در هر Run به صورت مستقل (حفظ فرمت Run)
         foreach (var run in paragraph.Elements<Run>().ToList())
         {
-            run.Remove();
-        }
+            var runText = run.InnerText;
+            if (string.IsNullOrEmpty(runText) || !MarkerRegex.IsMatch(runText)) continue;
 
-        // اضافه کردن Run جدید با متن جایگزین‌شده
-        var newRun = new Run();
-        if (runProperties != null)
-        {
-            newRun.RunProperties = runProperties;
+            var replacedText = runText;
+            foreach (var kvp in replacements)
+            {
+                var pattern = @"\{" + Regex.Escape(kvp.Key) + @"\}";
+                replacedText = Regex.Replace(replacedText, pattern, kvp.Value ?? "", RegexOptions.IgnoreCase);
+            }
+
+            if (replacedText == runText) continue;
+
+            // فقط متن‌های داخل Run رو عوض کن - فرمت Run حفظ میشه
+            SetRunText(run, replacedText);
         }
-        var newText = new Text(replacedText);
-        // Preserve whitespace via xml:space attribute
-        newText.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("xml:space", "", "preserve"));
-        newRun.AppendChild(newText);
-        paragraph.AppendChild(newRun);
     }
 
     /// <summary>
-    /// پاک کردن متن یک پاراگراف
+    /// تنظیم متن یک Run با حفظ کامل تمام عناصر غیرمتنی (RunProperties, Break, TabChar و غیره)
+    /// </summary>
+    private void SetRunText(Run run, string newText)
+    {
+        // حذف فقط عناصر Text از Run
+        var textElements = run.Elements<Text>().ToList();
+        foreach (var t in textElements)
+        {
+            t.Remove();
+        }
+
+        // اضافه کردن متن جدید
+        var newTextNode = new Text(newText);
+        newTextNode.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("xml:space", "", "preserve"));
+
+        // اگر RunProperties وجود دارد، متن را بعد از آن اضافه کن
+        // در غیر این صورت، در ابتدای Run
+        var runProps = run.RunProperties;
+        if (runProps != null)
+        {
+            run.InsertAfter(newTextNode, runProps);
+        }
+        else
+        {
+            run.InsertAt(newTextNode, 0);
+        }
+    }
+
+    /// <summary>
+    /// ادغام Runهایی که یک مارکر رو بین خودشون تقسیم کردن
+    /// مثلاً اگر Run1="{Buyer" و Run2="details}" باشند، ادغام میشن به یک Run
+    /// </summary>
+    private void MergeSplitMarkerRuns(Paragraph paragraph)
+    {
+        var runs = paragraph.Elements<Run>().ToList();
+        if (runs.Count < 2) return;
+
+        var fullText = paragraph.InnerText ?? "";
+        var matches = MarkerRegex.Matches(fullText);
+        if (matches.Count == 0) return;
+
+        // ساخت نقشه کاراکتر→Run
+        var charToRun = new (int runIndex, int charInRun)[fullText.Length];
+        int charPos = 0;
+        for (int ri = 0; ri < runs.Count; ri++)
+        {
+            var runText = runs[ri].InnerText ?? "";
+            for (int ci = 0; ci < runText.Length; ci++)
+            {
+                if (charPos < fullText.Length)
+                {
+                    charToRun[charPos] = (ri, ci);
+                    charPos++;
+                }
+            }
+        }
+
+        // پیدا کردن مارکرهایی که بین چند Run تقسیم شدن
+        // از آخر به اول پردازش می‌کنیم تا اندیس‌ها به هم نریزه
+        var mergeRanges = new List<(int startRunIdx, int endRunIdx)>();
+
+        foreach (Match match in matches)
+        {
+            if (match.Index + match.Length - 1 >= charToRun.Length) continue;
+            var startRunIdx = charToRun[match.Index].runIndex;
+            var endRunIdx = charToRun[match.Index + match.Length - 1].runIndex;
+
+            if (startRunIdx != endRunIdx)
+            {
+                mergeRanges.Add((startRunIdx, endRunIdx));
+            }
+        }
+
+        // از آخر به اول ادغام کن
+        mergeRanges.Sort((a, b) => b.startRunIdx.CompareTo(a.startRunIdx));
+
+        foreach (var (startIdx, endIdx) in mergeRanges)
+        {
+            if (startIdx >= runs.Count || endIdx >= runs.Count) continue;
+
+            var affectedRuns = new List<Run>();
+            for (int ri = startIdx; ri <= endIdx && ri < runs.Count; ri++)
+            {
+                affectedRuns.Add(runs[ri]);
+            }
+
+            if (affectedRuns.Count < 2) continue;
+
+            var mergedText = string.Concat(affectedRuns.Select(r => r.InnerText));
+            var firstRun = affectedRuns[0];
+
+            // قرار دادن متن ادغام‌شده در اولین Run
+            SetRunText(firstRun, mergedText);
+
+            // حذف Runهای اضافی (از آخر به اول)
+            for (int i = affectedRuns.Count - 1; i >= 1; i--)
+            {
+                affectedRuns[i].Remove();
+            }
+
+            // به‌روزرسانی لیست runs
+            runs = paragraph.Elements<Run>().ToList();
+        }
+    }
+
+    /// <summary>
+    /// پاک کردن متن یک پاراگراف (حفظ فرمت اولین Run)
     /// </summary>
     private void ClearAllText(Paragraph paragraph)
     {
-        foreach (var run in paragraph.Elements<Run>().ToList())
+        var runs = paragraph.Elements<Run>().ToList();
+        if (runs.Count == 0) return;
+
+        var firstRun = runs[0];
+        SetRunText(firstRun, "");
+
+        // حذف بقیه Runها
+        foreach (var run in runs.Skip(1).ToList())
         {
             run.Remove();
         }
@@ -573,10 +748,82 @@ public class ReportTemplateService : IReportTemplateService
                 Description = t.Description,
                 OriginalFileName = t.OriginalFileName,
                 PersianCreateDate = PersianDateService.ToPersian(t.CreateDate),
+                TemplateType = t.TemplateType,
                 MarkerCount = t.Markers?.Count ?? 0,
-                MappedMarkerCount = t.Markers?.Count(m => !string.IsNullOrWhiteSpace(m.PropertyPath)) ?? 0
+                MappedMarkerCount = t.Markers?.Count(m => m.DataType == MarkerDataType.List || !string.IsNullOrWhiteSpace(m.PropertyPath)) ?? 0
             }).ToList()
         };
+    }
+
+    public async Task<List<TemplateInfo>> GetAvailableTemplatesAsync(ReportTemplateType? templateType = null)
+    {
+        var query = _context.ReportTemplates
+            .Include(t => t.Markers)
+            .AsQueryable();
+
+        if (templateType.HasValue)
+        {
+            query = query.Where(t => t.TemplateType == templateType.Value);
+        }
+
+        var templates = await query
+            .OrderByDescending(t => t.CreateDate)
+            .ToListAsync();
+
+        return templates.Select(t => new TemplateInfo
+        {
+            Id = t.Id,
+            Name = t.Name,
+            Description = t.Description,
+            TemplateType = t.TemplateType,
+            MarkerCount = t.Markers?.Count ?? 0,
+            MappedMarkerCount = t.Markers?.Count(m => m.DataType == MarkerDataType.List || !string.IsNullOrWhiteSpace(m.PropertyPath)) ?? 0
+        }).ToList();
+    }
+
+    public async Task<List<FactorSearchResultItem>> SearchFactorsAsync(string? search, string? fromDateJalali, string? toDateJalali, int? personId)
+    {
+        DateTime? fromDate = PersianDateService.ParsePersianDate(fromDateJalali);
+        DateTime? toDate = PersianDateService.ParsePersianDate(toDateJalali);
+
+        var query = _context.Factors
+            .Include(f => f.Person)
+            .Include(f => f.FactorItems)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(f => f.Person!.PersonName.Contains(search) || f.Id.ToString() == search);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(f => f.CreateDate >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(f => f.CreateDate <= toDate.Value.AddDays(1));
+        }
+
+        if (personId.HasValue)
+        {
+            query = query.Where(f => f.PersonId == personId.Value);
+        }
+
+        var factors = await query
+            .OrderByDescending(f => f.CreateDate)
+            .Take(100)
+            .ToListAsync();
+
+        return factors.Select(f => new FactorSearchResultItem
+        {
+            Id = f.Id,
+            PersonName = f.Person?.PersonName ?? "",
+            PersianDate = PersianDateService.ToPersian(f.CreateDate),
+            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalItems = f.FactorItems?.Count ?? 0
+        }).ToList();
     }
 
     public async Task DeleteTemplateAsync(int templateId)
@@ -594,5 +841,35 @@ public class ReportTemplateService : IReportTemplateService
 
         _context.ReportTemplates.Remove(template);
         await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// تولید گزارش گروهی - هر فاکتور یک فایل Word، خروجی ZIP
+    /// </summary>
+    public async Task<byte[]> GenerateBatchReportAsync(int templateId, List<int> factorIds)
+    {
+        var template = await _context.ReportTemplates.FindAsync(templateId);
+        if (template == null) throw new ArgumentException("قالب یافت نشد");
+
+        using var ms = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            foreach (var factorId in factorIds)
+            {
+                try
+                {
+                    var docBytes = await GenerateReportAsync(templateId, factorId);
+                    var entry = archive.CreateEntry($"Factor-{factorId}.docx", System.IO.Compression.CompressionLevel.Fastest);
+                    using var entryStream = entry.Open();
+                    await entryStream.WriteAsync(docBytes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "خطا در تولید گزارش فاکتور {FactorId}، رد شد", factorId);
+                }
+            }
+        }
+
+        return ms.ToArray();
     }
 }

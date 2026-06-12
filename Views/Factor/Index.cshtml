@@ -5,9 +5,14 @@
 
 <div class="page-header">
     <h4><i class="bi bi-receipt-cutoff"></i> فاکتورها</h4>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> فاکتور جدید
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success">
+            <i class="bi bi-magic"></i> مرکز گزارش‌سازی
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> فاکتور جدید
+        </a>
+    </div>
 </div>
 
 <!-- Search & Filter -->
@@ -55,7 +60,7 @@
                                 <td><span class="text-success fw-bold">@item.TotalAmount.ToString("N0")</span></td>
                                 <td><small class="text-muted">@item.PersianCreateDate</small></td>
                                 <td>
-                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="مشاهده">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="مشاهده و گزارش">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <a asp-action="Print" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success" title="چاپ PDF" target="_blank">

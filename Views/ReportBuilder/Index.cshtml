@@ -1,0 +1,1102 @@
+@model Factors.Web.Models.ViewModels.ReportCenterViewModel
+@using Factors.Web.Models.Entities
+@{
+    ViewData["Title"] = "مرکز گزارش‌سازی";
+    var persons = ViewBag.Persons as dynamic;
+    var categories = ViewBag.Categories as dynamic;
+}
+
+<form id="antiForgeryForm" style="display:none;">@Html.AntiForgeryToken()</form>
+
+<div class="page-header">
+    <h4><i class="bi bi-magic"></i> مرکز گزارش‌سازی</h4>
+    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+    {
+        <a asp-controller="ReportTemplate" asp-action="Upload" class="btn btn-primary" title="ساخت قالب جدید">
+            <i class="bi bi-plus-lg"></i> قالب جدید
+        </a>
+    }
+</div>
+
+<!-- ویزارد مرحله‌ای -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-0">
+        <!-- Step indicators -->
+        <div class="d-flex border-bottom" id="stepIndicators">
+            <div class="flex-fill text-center py-2 step-indicator active" data-step="1">
+                <span class="badge bg-primary rounded-circle me-1">۱</span>
+                <span class="small fw-bold">انتخاب قالب</span>
+            </div>
+            <div class="flex-fill text-center py-2 step-indicator" data-step="2">
+                <span class="badge bg-light text-dark rounded-circle me-1">۲</span>
+                <span class="small text-muted">فیلتر داده‌ها</span>
+            </div>
+            <div class="flex-fill text-center py-2 step-indicator" data-step="3">
+                <span class="badge bg-light text-dark rounded-circle me-1">۳</span>
+                <span class="small text-muted">تولید گزارش</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Templates.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-word text-muted" style="font-size:3rem;"></i>
+            <h5 class="mt-3 text-muted">هنوز قالبی تعریف نشده</h5>
+            <p class="text-muted small">ابتدا یک قالب Word با مارکرها آپلود کنید، سپس از اینجا گزارش تولید کنید</p>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <a asp-controller="ReportTemplate" asp-action="Upload" class="btn btn-primary mt-2">
+                    <i class="bi bi-cloud-upload"></i> آپلود اولین قالب
+                </a>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <!-- ============================================================ -->
+    <!-- مرحله ۱: انتخاب قالب -->
+    <!-- ============================================================ -->
+    <div id="step1" class="step-content">
+        <!-- فیلتر نوع قالب -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small fw-bold"><i class="bi bi-funnel"></i> نوع گزارش:</span>
+                    <button type="button" class="btn btn-sm type-filter-btn @(Model.FilterTemplateType == null ? "btn-primary" : "btn-outline-secondary")" data-type="" onclick="filterByType(null)">
+                        همه
+                    </button>
+                    <button type="button" class="btn btn-sm type-filter-btn @(Model.FilterTemplateType == ReportTemplateType.SingleFactor ? "btn-primary" : "btn-outline-secondary")" data-type="0" onclick="filterByType(0)">
+                        <i class="bi bi-receipt-cutoff"></i> فاکتور تکی
+                    </button>
+                    <button type="button" class="btn btn-sm type-filter-btn @(Model.FilterTemplateType == ReportTemplateType.FactorList ? "btn-primary" : "btn-outline-secondary")" data-type="1" onclick="filterByType(1)">
+                        <i class="bi bi-list-ol"></i> لیست فاکتورها
+                    </button>
+                    <button type="button" class="btn btn-sm type-filter-btn @(Model.FilterTemplateType == ReportTemplateType.ProductList ? "btn-primary" : "btn-outline-secondary")" data-type="2" onclick="filterByType(2)">
+                        <i class="bi bi-box"></i> لیست محصولات
+                    </button>
+                    <button type="button" class="btn btn-sm type-filter-btn @(Model.FilterTemplateType == ReportTemplateType.PersonList ? "btn-primary" : "btn-outline-secondary")" data-type="3" onclick="filterByType(3)">
+                        <i class="bi bi-people"></i> لیست اشخاص
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- لیست قالب‌ها -->
+        <div class="row g-2" id="templatesContainer">
+            @foreach (var template in Model.Templates)
+            {
+                <div class="col-md-6 col-lg-4 col-xl-3 template-card-col" data-template-type="@((int)template.TemplateType)">
+                    <div class="card border template-card h-100 @(template.MappedMarkerCount < template.MarkerCount ? "border-warning" : "border-success")"
+                         id="templateCard_@template.Id" onclick="selectTemplate(@template.Id, @((int)template.TemplateType))">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <strong class="small">@template.Name</strong>
+                                <span class="badge @(template.MappedMarkerCount == template.MarkerCount ? "bg-success" : "bg-warning")" style="font-size:0.65rem">
+                                    @template.MappedMarkerCount/@template.MarkerCount
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(template.Description))
+                            {
+                                <p class="text-muted mb-1" style="font-size:0.75rem; line-height:1.3">@template.Description</p>
+                            }
+                            <div class="d-flex gap-1 flex-wrap">
+                                @{
+                                    var typeLabel = template.TemplateType switch
+                                    {
+                                        ReportTemplateType.SingleFactor => ("فاکتور تکی", "bi-receipt-cutoff", "bg-info"),
+                                        ReportTemplateType.FactorList => ("لیست فاکتور", "bi-list-ol", "bg-primary"),
+                                        ReportTemplateType.ProductList => ("محصولات", "bi-box", "bg-success"),
+                                        ReportTemplateType.PersonList => ("اشخاص", "bi-people", "bg-warning"),
+                                        _ => ("سفارشی", "bi-gear", "bg-secondary")
+                                    };
+                                }
+                                <span class="badge @typeLabel.Item3" style="font-size:0.6rem">
+                                    <i class="bi @typeLabel.Item2"></i> @typeLabel.Item1
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- مرحله ۲: فیلتر داده‌ها -->
+    <!-- ============================================================ -->
+    <div id="step2" class="step-content" style="display:none;">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-funnel text-primary"></i>
+                    <span id="filterTitle">فیلتر داده‌ها</span>
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="goToStep(1)">
+                    <i class="bi bi-arrow-right"></i> تغییر قالب
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- فیلتر فاکتور تکی -->
+                <div id="singleFactorFilter" style="display:none;">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">شماره فاکتور یا نام مشتری</label>
+                            <input type="text" id="factorSearch" class="form-control form-control-sm" placeholder="جستجو..." />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">از تاریخ</label>
+                            <input type="text" id="factorFromDate" class="form-control form-control-sm persian-datepicker" placeholder="از تاریخ" autocomplete="off" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-bold">تا تاریخ</label>
+                            <input type="text" id="factorToDate" class="form-control form-control-sm persian-datepicker" placeholder="تا تاریخ" autocomplete="off" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">مشتری</label>
+                            <select id="factorPersonId" class="form-select form-select-sm">
+                                <option value="">همه مشتریان</option>
+                                @if (persons != null)
+                                {
+                                    foreach (var p in persons)
+                                    {
+                                        <option value="@p.Id">@p.PersonName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="searchFactors()">
+                                <i class="bi bi-search"></i> جستجو
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- نتایج جستجو -->
+                    <div id="factorSearchResults" style="display:none;">
+                        <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:40px" class="text-center">
+                                            <input type="checkbox" id="selectAllFactors" onchange="toggleSelectAll(this)" />
+                                        </th>
+                                        <th style="width:70px">شماره</th>
+                                        <th>مشتری</th>
+                                        <th>تاریخ</th>
+                                        <th>مبلغ (ریال)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="factorResultsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="noFactorResults" style="display:none;" class="text-center text-muted py-3">
+                            <i class="bi bi-inbox"></i> فاکتوری یافت نشد
+                        </div>
+                    </div>
+
+                    <!-- حالت اولیه -->
+                    <div id="factorSearchPlaceholder" class="text-center text-muted py-4">
+                        <i class="bi bi-search" style="font-size:1.5rem;"></i>
+                        <p class="mt-2 mb-0 small">برای پیدا کردن فاکتور مورد نظر، جستجو کنید</p>
+                    </div>
+
+                    <!-- دکمه ادامه - بعد از انتخاب فاکتور -->
+                    <div id="singleFactorNextBtn" style="display:none;" class="mt-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-success" onclick="proceedToStep3()">
+                            <i class="bi bi-arrow-left"></i> ادامه به مرحله تولید
+                        </button>
+                    </div>
+                </div>
+
+                <!-- فیلتر لیست فاکتورها -->
+                <div id="factorListFilter" style="display:none;">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">از تاریخ</label>
+                            <input type="text" id="listFromDate" class="form-control form-control-sm persian-datepicker" placeholder="از تاریخ" autocomplete="off" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">تا تاریخ</label>
+                            <input type="text" id="listToDate" class="form-control form-control-sm persian-datepicker" placeholder="تا تاریخ" autocomplete="off" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">مشتری</label>
+                            <select id="listPersonId" class="form-select form-select-sm">
+                                <option value="">همه مشتریان</option>
+                                @if (persons != null)
+                                {
+                                    foreach (var p in persons)
+                                    {
+                                        <option value="@p.Id">@p.PersonName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="searchListFactors()">
+                                <i class="bi bi-search"></i> جستجو
+                            </button>
+                        </div>
+                    </div>
+                    <div id="factorListResults" style="display:none;">
+                        <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:40px" class="text-center">
+                                            <input type="checkbox" id="selectAllListFactors" onchange="toggleSelectAllList(this)" checked />
+                                        </th>
+                                        <th style="width:70px">شماره</th>
+                                        <th>مشتری</th>
+                                        <th>تاریخ</th>
+                                        <th>مبلغ (ریال)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="factorListResultsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="factorListPlaceholder" class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-range" style="font-size:1.5rem;"></i>
+                        <p class="mt-2 mb-0 small">بازه زمانی را مشخص کنید و جستجو کنید</p>
+                    </div>
+
+                    <!-- دکمه ادامه -->
+                    <div id="factorListNextBtn" style="display:none;" class="mt-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-success" onclick="proceedToStep3()">
+                            <i class="bi bi-arrow-left"></i> ادامه به مرحله تولید
+                        </button>
+                    </div>
+                </div>
+
+                <!-- فیلتر محصولات -->
+                <div id="productListFilter" style="display:none;">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">نام یا کد محصول</label>
+                            <input type="text" id="productSearch" class="form-control form-control-sm" placeholder="جستجوی محصول..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">دسته‌بندی</label>
+                            <select id="productCategoryId" class="form-select form-select-sm">
+                                <option value="">همه دسته‌بندی‌ها</option>
+                                @if (categories != null)
+                                {
+                                    foreach (var c in categories)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="searchProducts()">
+                                <i class="bi bi-search"></i> جستجو
+                            </button>
+                        </div>
+                    </div>
+                    <div id="productSearchResults" style="display:none;">
+                        <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:40px" class="text-center">
+                                            <input type="checkbox" id="selectAllProducts" onchange="toggleSelectAllProducts(this)" checked />
+                                        </th>
+                                        <th>نام محصول</th>
+                                        <th>کد</th>
+                                        <th>دسته‌بندی</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productResultsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="productSearchPlaceholder" class="text-center text-muted py-4">
+                        <i class="bi bi-box" style="font-size:1.5rem;"></i>
+                        <p class="mt-2 mb-0 small">محصولات را جستجو کنید</p>
+                    </div>
+
+                    <!-- دکمه ادامه -->
+                    <div id="productListNextBtn" style="display:none;" class="mt-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-success" onclick="proceedToStep3()">
+                            <i class="bi bi-arrow-left"></i> ادامه به مرحله تولید
+                        </button>
+                    </div>
+                </div>
+
+                <!-- فیلتر اشخاص -->
+                <div id="personListFilter" style="display:none;">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">نام شخص/شرکت</label>
+                            <input type="text" id="personSearch" class="form-control form-control-sm" placeholder="جستجوی شخص..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">نوع</label>
+                            <select id="personTypeFilter" class="form-select form-select-sm">
+                                <option value="">همه</option>
+                                <option value="true">حقیقی</option>
+                                <option value="false">حقوقی</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="searchPersons()">
+                                <i class="bi bi-search"></i> جستجو
+                            </button>
+                        </div>
+                    </div>
+                    <div id="personSearchResults" style="display:none;">
+                        <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width:40px" class="text-center">
+                                            <input type="checkbox" id="selectAllPersons" onchange="toggleSelectAllPersons(this)" checked />
+                                        </th>
+                                        <th>نام</th>
+                                        <th>نوع</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="personResultsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="personSearchPlaceholder" class="text-center text-muted py-4">
+                        <i class="bi bi-people" style="font-size:1.5rem;"></i>
+                        <p class="mt-2 mb-0 small">اشخاص را جستجو کنید</p>
+                    </div>
+
+                    <!-- دکمه ادامه -->
+                    <div id="personListNextBtn" style="display:none;" class="mt-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-success" onclick="proceedToStep3()">
+                            <i class="bi bi-arrow-left"></i> ادامه به مرحله تولید
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- مرحله ۳: تولید گزارش -->
+    <!-- ============================================================ -->
+    <div id="step3" class="step-content" style="display:none;">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-arrow-down text-success"></i> تولید گزارش</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="goToStep(2)">
+                    <i class="bi bi-arrow-right"></i> تغییر فیلتر
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-2" style="background:#f0fff4; border:1px solid #c3e6cb;">
+                            <h6 class="text-success mb-2"><i class="bi bi-check-circle-fill"></i> قالب انتخاب شده</h6>
+                            <div id="selectedTemplateInfo" class="small"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-2" style="background:#eef0ff; border:1px solid #c6c8ff;">
+                            <h6 class="text-primary mb-2"><i class="bi bi-database"></i> داده‌های انتخاب شده</h6>
+                            <div id="selectedDataInfo" class="small"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle"></i>
+                        <span id="generateHelpText">گزارش Word با داده‌های انتخاب شده تولید خواهد شد</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                            <i class="bi bi-arrow-right"></i> بازگشت
+                        </button>
+                        <button type="button" class="btn btn-success btn-lg" onclick="generateReport()" id="generateBtn">
+                            <i class="bi bi-file-earmark-arrow-down"></i> تولید گزارش Word
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .template-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-width: 2px !important;
+    }
+    .template-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .template-card.selected {
+        border-color: #4361ee !important;
+        background: #f0efff !important;
+        box-shadow: 0 0 0 3px rgba(67,97,238,0.2);
+    }
+    .type-filter-btn.active {
+        font-weight: 600;
+    }
+    .step-indicator {
+        transition: all 0.2s ease;
+        border-bottom: 3px solid transparent;
+    }
+    .step-indicator.active {
+        border-bottom-color: #4361ee;
+        background: #f8f9ff;
+    }
+    .step-indicator.completed {
+        border-bottom-color: #2ec4b6;
+    }
+    .factor-row {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .factor-row:hover {
+        background: #f0efff !important;
+    }
+    .factor-row.selected {
+        background: #e8f5e9 !important;
+    }
+    thead.sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+</style>
+
+@section Scripts {
+<script>
+    var selectedTemplateId = null;
+    var selectedTemplateType = null;
+    var selectedFactorId = null;
+    var selectedFactorIds = [];  // برای لیست فاکتورها
+    var selectedProductIds = [];
+    var selectedPersonIds = [];
+    var currentStep = 1;
+    var allFactorResults = [];
+    var allListFactorResults = [];
+
+    // ============================================================
+    // Navigation
+    // ============================================================
+    function goToStep(step) {
+        currentStep = step;
+
+        // Hide all steps
+        document.querySelectorAll('.step-content').forEach(function(el) { el.style.display = 'none'; });
+        document.getElementById('step' + step).style.display = 'block';
+
+        // Update indicators
+        document.querySelectorAll('.step-indicator').forEach(function(ind) {
+            var s = parseInt(ind.getAttribute('data-step'));
+            ind.classList.remove('active', 'completed');
+            var badge = ind.querySelector('.badge');
+
+            if (s < step) {
+                ind.classList.add('completed');
+                badge.className = 'badge bg-success rounded-circle me-1';
+            } else if (s === step) {
+                ind.classList.add('active');
+                badge.className = 'badge bg-primary rounded-circle me-1';
+            } else {
+                badge.className = 'badge bg-light text-dark rounded-circle me-1';
+            }
+
+            // Update text color
+            var textSpan = ind.querySelector('span:last-child');
+            if (s <= step) {
+                textSpan.classList.remove('text-muted');
+                textSpan.classList.add('fw-bold');
+            } else {
+                textSpan.classList.add('text-muted');
+                textSpan.classList.remove('fw-bold');
+            }
+        });
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function filterByType(type) {
+        var url = '/ReportBuilder/Index';
+        if (type !== null && type !== undefined && type !== '') {
+            url += '?type=' + type;
+        }
+        window.location.href = url;
+    }
+
+    // ============================================================
+    // Step 1: Template Selection
+    // ============================================================
+    function selectTemplate(templateId, templateType) {
+        // Remove previous selection
+        document.querySelectorAll('.template-card').forEach(function(c) {
+            c.classList.remove('selected');
+        });
+
+        var card = document.getElementById('templateCard_' + templateId);
+        if (card) card.classList.add('selected');
+
+        selectedTemplateId = templateId;
+        selectedTemplateType = templateType;
+        selectedFactorId = null;
+        selectedFactorIds = [];
+        selectedProductIds = [];
+        selectedPersonIds = [];
+
+        // Show appropriate filter in step 2
+        showFilterForType(templateType);
+
+        // Move to step 2
+        goToStep(2);
+    }
+
+    function showFilterForType(templateType) {
+        // Hide all filters
+        document.getElementById('singleFactorFilter').style.display = 'none';
+        document.getElementById('factorListFilter').style.display = 'none';
+        document.getElementById('productListFilter').style.display = 'none';
+        document.getElementById('personListFilter').style.display = 'none';
+
+        var titleEl = document.getElementById('filterTitle');
+
+        switch (templateType) {
+            case 0: // SingleFactor
+                document.getElementById('singleFactorFilter').style.display = 'block';
+                titleEl.textContent = 'انتخاب فاکتور';
+                break;
+            case 1: // FactorList
+                document.getElementById('factorListFilter').style.display = 'block';
+                titleEl.textContent = 'فیلتر بازه فاکتورها';
+                break;
+            case 2: // ProductList
+                document.getElementById('productListFilter').style.display = 'block';
+                titleEl.textContent = 'فیلتر محصولات';
+                break;
+            case 3: // PersonList
+                document.getElementById('personListFilter').style.display = 'block';
+                titleEl.textContent = 'فیلتر اشخاص';
+                break;
+            default:
+                document.getElementById('singleFactorFilter').style.display = 'block';
+                titleEl.textContent = 'فیلتر داده‌ها';
+                break;
+        }
+    }
+
+    // ============================================================
+    // Step 2: Data Filtering
+    // ============================================================
+
+    // --- Single Factor Search ---
+    function searchFactors() {
+        var search = document.getElementById('factorSearch')?.value || '';
+        var fromDate = document.getElementById('factorFromDate')?.value || '';
+        var toDate = document.getElementById('factorToDate')?.value || '';
+        var personId = document.getElementById('factorPersonId')?.value || '';
+
+        var params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (fromDate) params.set('fromDateJalali', fromDate);
+        if (toDate) params.set('toDateJalali', toDate);
+        if (personId) params.set('personId', personId);
+
+        fetch('/ReportBuilder/SearchFactors?' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                allFactorResults = data;
+                showFactorResults(data);
+            })
+            .catch(function(err) { console.error('Search error:', err); });
+    }
+
+    function showFactorResults(data) {
+        var tbody = document.getElementById('factorResultsBody');
+        var noResults = document.getElementById('noFactorResults');
+        var resultsDiv = document.getElementById('factorSearchResults');
+        var placeholder = document.getElementById('factorSearchPlaceholder');
+
+        if (!tbody) return;
+
+        placeholder.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            noResults.style.display = 'block';
+            return;
+        }
+
+        noResults.style.display = 'none';
+
+        data.forEach(function(f) {
+            var tr = document.createElement('tr');
+            tr.className = 'factor-row';
+            tr.setAttribute('data-factor-id', f.id);
+            tr.innerHTML =
+                '<td class="text-center"><input type="checkbox" class="factor-check" value="' + f.id + '" onchange="onFactorCheck(this, ' + f.id + ')" /></td>' +
+                '<td><strong>' + f.id + '</strong></td>' +
+                '<td>' + f.personName + '</td>' +
+                '<td><small class="text-muted">' + f.persianDate + '</small></td>' +
+                '<td><span class="text-success fw-bold">' + Number(f.totalAmount).toLocaleString() + '</span></td>';
+
+            // Double-click to quickly generate
+            tr.addEventListener('dblclick', function() {
+                selectSingleFactor(f.id, f.personName);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function onFactorCheck(checkbox, factorId) {
+        var row = checkbox.closest('tr');
+        if (checkbox.checked) {
+            row.classList.add('selected');
+            selectedFactorId = factorId;
+            // Uncheck others
+            document.querySelectorAll('.factor-check').forEach(function(cb) {
+                if (cb !== checkbox) {
+                    cb.checked = false;
+                    cb.closest('tr').classList.remove('selected');
+                }
+            });
+            // Show next button
+            document.getElementById('singleFactorNextBtn').style.display = 'flex';
+        } else {
+            row.classList.remove('selected');
+            selectedFactorId = null;
+            document.getElementById('singleFactorNextBtn').style.display = 'none';
+        }
+    }
+
+    function toggleSelectAll(masterCheck) {
+        document.querySelectorAll('.factor-check').forEach(function(cb) {
+            cb.checked = masterCheck.checked;
+            var row = cb.closest('tr');
+            if (masterCheck.checked) {
+                row.classList.add('selected');
+                selectedFactorId = parseInt(cb.value);
+            } else {
+                row.classList.remove('selected');
+                selectedFactorId = null;
+            }
+        });
+    }
+
+    function selectSingleFactor(factorId, personName) {
+        selectedFactorId = factorId;
+        // Move to step 3
+        showStep3Info();
+        goToStep(3);
+    }
+
+    // Proceed to step 3 from any filter
+    function proceedToStep3() {
+        // Validate based on template type
+        switch (selectedTemplateType) {
+            case 0: // SingleFactor
+                if (!selectedFactorId) {
+                    alert('لطفاً یک فاکتور انتخاب کنید');
+                    return;
+                }
+                break;
+            case 1: // FactorList
+                if (selectedFactorIds.length === 0) {
+                    alert('لطفاً حداقل یک فاکتور انتخاب کنید');
+                    return;
+                }
+                break;
+            case 2: // ProductList
+                if (selectedProductIds.length === 0) {
+                    alert('لطفاً حداقل یک محصول انتخاب کنید');
+                    return;
+                }
+                break;
+            case 3: // PersonList
+                if (selectedPersonIds.length === 0) {
+                    alert('لطفاً حداقل یک شخص انتخاب کنید');
+                    return;
+                }
+                break;
+        }
+
+        showStep3Info();
+        goToStep(3);
+    }
+
+    // --- Factor List Search ---
+    function searchListFactors() {
+        var fromDate = document.getElementById('listFromDate')?.value || '';
+        var toDate = document.getElementById('listToDate')?.value || '';
+        var personId = document.getElementById('listPersonId')?.value || '';
+
+        var params = new URLSearchParams();
+        if (fromDate) params.set('fromDateJalali', fromDate);
+        if (toDate) params.set('toDateJalali', toDate);
+        if (personId) params.set('personId', personId);
+
+        fetch('/ReportBuilder/SearchFactors?' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                allListFactorResults = data;
+                showListFactorResults(data);
+            })
+            .catch(function(err) { console.error('Search error:', err); });
+    }
+
+    function showListFactorResults(data) {
+        var tbody = document.getElementById('factorListResultsBody');
+        var resultsDiv = document.getElementById('factorListResults');
+        var placeholder = document.getElementById('factorListPlaceholder');
+
+        if (!tbody) return;
+
+        placeholder.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        tbody.innerHTML = '';
+        selectedFactorIds = [];
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">فاکتوری یافت نشد</td></tr>';
+            document.getElementById('factorListNextBtn').style.display = 'none';
+            return;
+        }
+
+        data.forEach(function(f) {
+            selectedFactorIds.push(f.id);
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td class="text-center"><input type="checkbox" class="list-factor-check" value="' + f.id + '" checked onchange="onListFactorCheck(this, ' + f.id + ')" /></td>' +
+                '<td><strong>' + f.id + '</strong></td>' +
+                '<td>' + f.personName + '</td>' +
+                '<td><small class="text-muted">' + f.persianDate + '</small></td>' +
+                '<td><span class="text-success fw-bold">' + Number(f.totalAmount).toLocaleString() + '</span></td>';
+            tbody.appendChild(tr);
+        });
+
+        // Show next button
+        document.getElementById('factorListNextBtn').style.display = 'flex';
+    }
+
+    function onListFactorCheck(checkbox, factorId) {
+        if (checkbox.checked) {
+            if (!selectedFactorIds.includes(factorId)) selectedFactorIds.push(factorId);
+            checkbox.closest('tr').classList.add('selected');
+        } else {
+            selectedFactorIds = selectedFactorIds.filter(id => id !== factorId);
+            checkbox.closest('tr').classList.remove('selected');
+        }
+    }
+
+    function toggleSelectAllList(masterCheck) {
+        selectedFactorIds = [];
+        document.querySelectorAll('.list-factor-check').forEach(function(cb) {
+            cb.checked = masterCheck.checked;
+            if (masterCheck.checked) {
+                selectedFactorIds.push(parseInt(cb.value));
+                cb.closest('tr').classList.add('selected');
+            } else {
+                cb.closest('tr').classList.remove('selected');
+            }
+        });
+    }
+
+    // --- Product Search ---
+    function searchProducts() {
+        var search = document.getElementById('productSearch')?.value || '';
+        var categoryId = document.getElementById('productCategoryId')?.value || '';
+
+        var params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (categoryId) params.set('categoryId', categoryId);
+
+        fetch('/ReportBuilder/SearchProducts?' + params.toString())
+            .then(r => r.json())
+            .then(data => showProductResults(data))
+            .catch(function(err) { console.error('Search error:', err); });
+    }
+
+    function showProductResults(data) {
+        var tbody = document.getElementById('productResultsBody');
+        var resultsDiv = document.getElementById('productSearchResults');
+        var placeholder = document.getElementById('productSearchPlaceholder');
+
+        if (!tbody) return;
+
+        placeholder.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        tbody.innerHTML = '';
+        selectedProductIds = [];
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">محصولی یافت نشد</td></tr>';
+            document.getElementById('productListNextBtn').style.display = 'none';
+            return;
+        }
+
+        data.forEach(function(p) {
+            selectedProductIds.push(p.id);
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td class="text-center"><input type="checkbox" class="product-check" value="' + p.id + '" checked onchange="onProductCheck(this, ' + p.id + ')" /></td>' +
+                '<td>' + p.name + '</td>' +
+                '<td><code>' + (p.code || '-') + '</code></td>' +
+                '<td>' + (p.categoryName || '-') + '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // Show next button
+        document.getElementById('productListNextBtn').style.display = 'flex';
+    }
+
+    function onProductCheck(checkbox, productId) {
+        if (checkbox.checked) {
+            if (!selectedProductIds.includes(productId)) selectedProductIds.push(productId);
+        } else {
+            selectedProductIds = selectedProductIds.filter(id => id !== productId);
+        }
+    }
+
+    function toggleSelectAllProducts(masterCheck) {
+        selectedProductIds = [];
+        document.querySelectorAll('.product-check').forEach(function(cb) {
+            cb.checked = masterCheck.checked;
+            if (masterCheck.checked) selectedProductIds.push(parseInt(cb.value));
+        });
+    }
+
+    // --- Person Search ---
+    function searchPersons() {
+        var search = document.getElementById('personSearch')?.value || '';
+        var isIndividual = document.getElementById('personTypeFilter')?.value || '';
+
+        var params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (isIndividual !== '') params.set('isIndividual', isIndividual);
+
+        fetch('/ReportBuilder/SearchPersons?' + params.toString())
+            .then(r => r.json())
+            .then(data => showPersonResults(data))
+            .catch(function(err) { console.error('Search error:', err); });
+    }
+
+    function showPersonResults(data) {
+        var tbody = document.getElementById('personResultsBody');
+        var resultsDiv = document.getElementById('personSearchResults');
+        var placeholder = document.getElementById('personSearchPlaceholder');
+
+        if (!tbody) return;
+
+        placeholder.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        tbody.innerHTML = '';
+        selectedPersonIds = [];
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">شخصی یافت نشد</td></tr>';
+            document.getElementById('personListNextBtn').style.display = 'none';
+            return;
+        }
+
+        data.forEach(function(p) {
+            selectedPersonIds.push(p.id);
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td class="text-center"><input type="checkbox" class="person-check" value="' + p.id + '" checked onchange="onPersonCheck(this, ' + p.id + ')" /></td>' +
+                '<td>' + p.personName + '</td>' +
+                '<td><span class="badge ' + (p.isIndividual ? 'bg-info' : 'bg-warning text-dark') + '">' + (p.isIndividual ? 'حقیقی' : 'حقوقی') + '</span></td>';
+            tbody.appendChild(tr);
+        });
+
+        // Show next button
+        document.getElementById('personListNextBtn').style.display = 'flex';
+    }
+
+    function onPersonCheck(checkbox, personId) {
+        if (checkbox.checked) {
+            if (!selectedPersonIds.includes(personId)) selectedPersonIds.push(personId);
+        } else {
+            selectedPersonIds = selectedPersonIds.filter(id => id !== personId);
+        }
+    }
+
+    function toggleSelectAllPersons(masterCheck) {
+        selectedPersonIds = [];
+        document.querySelectorAll('.person-check').forEach(function(cb) {
+            cb.checked = masterCheck.checked;
+            if (masterCheck.checked) selectedPersonIds.push(parseInt(cb.value));
+        });
+    }
+
+    // ============================================================
+    // Step 3: Generate Report
+    // ============================================================
+    function showStep3Info() {
+        // Template info
+        var card = document.getElementById('templateCard_' + selectedTemplateId);
+        var templateName = card ? card.querySelector('strong').textContent : 'نامشخص';
+        document.getElementById('selectedTemplateInfo').innerHTML =
+            '<strong>' + templateName + '</strong>';
+
+        // Data info
+        var dataInfo = '';
+        switch (selectedTemplateType) {
+            case 0:
+                dataInfo = 'فاکتور #' + selectedFactorId;
+                break;
+            case 1:
+                dataInfo = selectedFactorIds.length + ' فاکتور انتخاب شده';
+                break;
+            case 2:
+                dataInfo = selectedProductIds.length + ' محصول انتخاب شده';
+                break;
+            case 3:
+                dataInfo = selectedPersonIds.length + ' شخص انتخاب شده';
+                break;
+        }
+        document.getElementById('selectedDataInfo').innerHTML = dataInfo;
+    }
+
+    function generateReport() {
+        if (!selectedTemplateId) {
+            alert('لطفاً ابتدا یک قالب انتخاب کنید');
+            return;
+        }
+
+        var token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (!token) return;
+
+        var btn = document.getElementById('generateBtn');
+        var origHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> در حال تولید...';
+
+        switch (selectedTemplateType) {
+            case 0: // Single Factor
+                generateSingleFactorReport(token, btn, origHTML);
+                break;
+            case 1: // Factor List
+                generateBatchFactorReport(token, btn, origHTML);
+                break;
+            default:
+                // For ProductList and PersonList - use single factor for now
+                if (selectedFactorId) {
+                    generateSingleFactorReport(token, btn, origHTML);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = origHTML;
+                    alert('لطفاً داده‌های مورد نظر را انتخاب کنید');
+                }
+                break;
+        }
+    }
+
+    function generateSingleFactorReport(token, btn, origHTML) {
+        if (!selectedFactorId) {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+            alert('لطفاً یک فاکتور انتخاب کنید');
+            return;
+        }
+
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/ReportBuilder/GenerateSingleFactorReport';
+        form.target = '_blank';
+
+        addHiddenInput(form, '__RequestVerificationToken', token.value);
+        addHiddenInput(form, 'templateId', selectedTemplateId);
+        addHiddenInput(form, 'factorId', selectedFactorId);
+
+        document.body.appendChild(form);
+
+        setTimeout(function() {
+            form.submit();
+            document.body.removeChild(form);
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+        }, 300);
+    }
+
+    function generateBatchFactorReport(token, btn, origHTML) {
+        if (selectedFactorIds.length === 0) {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+            alert('لطفاً حداقل یک فاکتور انتخاب کنید');
+            return;
+        }
+
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/ReportBuilder/GenerateBatchFactorReport';
+        form.target = '_blank';
+
+        addHiddenInput(form, '__RequestVerificationToken', token.value);
+        addHiddenInput(form, 'templateId', selectedTemplateId);
+
+        // Add filter params
+        var search = document.getElementById('factorSearch')?.value || document.getElementById('productSearch')?.value || '';
+        var fromDate = document.getElementById('factorFromDate')?.value || document.getElementById('listFromDate')?.value || '';
+        var toDate = document.getElementById('factorToDate')?.value || document.getElementById('listToDate')?.value || '';
+        var personId = document.getElementById('factorPersonId')?.value || document.getElementById('listPersonId')?.value || '';
+
+        if (search) addHiddenInput(form, 'search', search);
+        if (fromDate) addHiddenInput(form, 'fromDateJalali', fromDate);
+        if (toDate) addHiddenInput(form, 'toDateJalali', toDate);
+        if (personId) addHiddenInput(form, 'personId', personId);
+
+        document.body.appendChild(form);
+
+        setTimeout(function() {
+            form.submit();
+            document.body.removeChild(form);
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+        }, 300);
+    }
+
+    function addHiddenInput(form, name, value) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    // Enter key for search
+    document.addEventListener('DOMContentLoaded', function() {
+        ['factorSearch', 'productSearch', 'personSearch'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        switch (id) {
+                            case 'factorSearch': searchFactors(); break;
+                            case 'productSearch': searchProducts(); break;
+                            case 'personSearch': searchPersons(); break;
+                        }
+                    }
+                });
+            }
+        });
+    });
+</script>
+}

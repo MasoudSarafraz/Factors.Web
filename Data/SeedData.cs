@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Factors.Web.Data;
 
+/// <summary>
+/// نسخه ۵ - فقط درج داده‌های اولیه
+/// ساخت جداول حالا در Program.cs انجام میشه با Raw SQL
+/// این فایل فقط داده‌ها رو درج می‌کنه
+/// </summary>
 public static class SeedData
 {
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
@@ -13,73 +18,10 @@ public static class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
-        // Apply pending migrations (creates DB if not exists, applies new migrations)
-        try
-        {
-            await context.Database.MigrateAsync();
-        }
-        catch
-        {
-            // If migrations folder doesn't exist, ensure DB is created
-            await context.Database.EnsureCreatedAsync();
-        }
-
-        // Ensure new tables exist (for cases where EnsureCreatedAsync was used previously)
-        await EnsureTableExistsAsync(context);
-
-        // Seed Roles
+        // درج داده‌های اولیه
         await SeedRolesAsync(roleManager);
-
-        // Seed Admin User
         await SeedAdminUserAsync(userManager);
-
-        // Seed Sample Data
         await SeedSampleDataAsync(context);
-    }
-
-    private static async Task EnsureTableExistsAsync(AppDbContext context)
-    {
-        var conn = context.Database.GetDbConnection();
-        await conn.OpenAsync();
-
-        try
-        {
-            // Check if ReportTemplates table exists
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ReportTemplates'";
-            var result = await cmd.ExecuteScalarAsync();
-
-            if (result == null)
-            {
-                // Create ReportTemplates table
-                using var cmd2 = conn.CreateCommand();
-                cmd2.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS ReportTemplates (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Name TEXT NOT NULL,
-                        Description TEXT,
-                        FilePath TEXT NOT NULL,
-                        OriginalFileName TEXT NOT NULL,
-                        CreateDate TEXT NOT NULL DEFAULT '0001-01-01T00:00:00'
-                    );
-                    CREATE TABLE IF NOT EXISTS ReportTemplateMarkers (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        TemplateId INTEGER NOT NULL,
-                        MarkerName TEXT NOT NULL,
-                        DataType INTEGER NOT NULL DEFAULT 0,
-                        DataSource INTEGER NOT NULL DEFAULT 0,
-                        PropertyPath TEXT,
-                        FOREIGN KEY (TemplateId) REFERENCES ReportTemplates(Id) ON DELETE CASCADE
-                    );
-                    CREATE INDEX IF NOT EXISTS IX_ReportTemplateMarkers_TemplateId ON ReportTemplateMarkers(TemplateId);
-                ";
-                await cmd2.ExecuteNonQueryAsync();
-            }
-        }
-        finally
-        {
-            await conn.CloseAsync();
-        }
     }
 
     private static async Task SeedRolesAsync(RoleManager<AppRole> roleManager)
@@ -124,7 +66,6 @@ public static class SeedData
             }
         }
 
-        // Seed manager user
         var managerEmail = "manager@factors.ir";
         var managerUser = await userManager.FindByEmailAsync(managerEmail);
 
@@ -150,7 +91,6 @@ public static class SeedData
 
     private static async Task SeedSampleDataAsync(AppDbContext context)
     {
-        // Seed Categories
         if (!await context.ProductCategories.AnyAsync())
         {
             var categories = new List<ProductCategory>
@@ -165,7 +105,6 @@ public static class SeedData
             await context.SaveChangesAsync();
         }
 
-        // Seed Products
         if (!await context.Products.AnyAsync())
         {
             var cat1 = await context.ProductCategories.FirstAsync(c => c.Name == "لوازم الکترونیکی");
@@ -184,7 +123,6 @@ public static class SeedData
             await context.Products.AddRangeAsync(products);
             await context.SaveChangesAsync();
 
-            // Seed Product Prices
             var prod1 = await context.Products.FirstAsync(p => p.Code == "1001");
             var prod2 = await context.Products.FirstAsync(p => p.Code == "1002");
             var prod3 = await context.Products.FirstAsync(p => p.Code == "2001");
@@ -198,7 +136,6 @@ public static class SeedData
             await context.ProductPrices.AddRangeAsync(prices);
         }
 
-        // Seed Persons
         if (!await context.Persons.AnyAsync())
         {
             var persons = new List<Person>
@@ -213,7 +150,6 @@ public static class SeedData
             await context.Persons.AddRangeAsync(persons);
         }
 
-        // Seed Packs
         if (!await context.ProductPacks.AnyAsync())
         {
             var packs = new List<ProductPack>
@@ -225,7 +161,6 @@ public static class SeedData
             await context.ProductPacks.AddRangeAsync(packs);
             await context.SaveChangesAsync();
 
-            // Seed Pack Items
             var pack1 = await context.ProductPacks.FirstAsync(p => p.PackCode == "PK001");
             var pack2 = await context.ProductPacks.FirstAsync(p => p.PackCode == "PK002");
             var prod1 = await context.Products.FirstAsync(p => p.Code == "2001");

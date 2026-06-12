@@ -126,6 +126,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
             e.Property(x => x.Name).IsRequired().HasMaxLength(200);
             e.Property(x => x.FilePath).IsRequired();
             e.Property(x => x.OriginalFileName).IsRequired().HasMaxLength(300);
+            e.Property(x => x.TemplateType).HasDefaultValue(ReportTemplateType.SingleFactor);
             e.HasMany(x => x.Markers)
              .WithOne(x => x.Template)
              .HasForeignKey(x => x.TemplateId)
@@ -138,6 +139,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
             e.HasKey(x => x.Id);
             e.Property(x => x.MarkerName).IsRequired().HasMaxLength(100);
             e.Property(x => x.PropertyPath).HasMaxLength(200);
+            e.Property(x => x.ParentListMarker).HasMaxLength(100);
         });
     }
 }

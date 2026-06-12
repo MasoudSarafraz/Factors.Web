@@ -1,13 +1,19 @@
 @model Factors.Web.Models.ViewModels.ReportTemplateListViewModel
+@using Factors.Web.Models.Entities
 @{
     ViewData["Title"] = "قالب‌های گزارش";
 }
 
 <div class="page-header">
     <h4><i class="bi bi-file-earmark-word"></i> قالب‌های گزارش</h4>
-    <a asp-action="Upload" class="btn btn-primary">
-        <i class="bi bi-cloud-upload"></i> آپلود قالب جدید
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success">
+            <i class="bi bi-magic"></i> مرکز گزارش‌سازی
+        </a>
+        <a asp-action="Upload" class="btn btn-primary">
+            <i class="bi bi-cloud-upload"></i> آپلود قالب جدید
+        </a>
+    </div>
 </div>
 
 @if (!Model.Templates.Any())
@@ -28,6 +34,15 @@ else
     <div class="row g-3">
         @foreach (var template in Model.Templates)
         {
+            var typeInfo = template.TemplateType switch
+            {
+                ReportTemplateType.SingleFactor => ("فاکتور تکی", "bi-receipt-cutoff", "bg-info"),
+                ReportTemplateType.FactorList => ("لیست فاکتور", "bi-list-ol", "bg-primary"),
+                ReportTemplateType.ProductList => ("محصولات", "bi-box", "bg-success"),
+                ReportTemplateType.PersonList => ("اشخاص", "bi-people", "bg-warning text-dark"),
+                _ => ("سفارشی", "bi-gear", "bg-secondary")
+            };
+
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -42,9 +57,6 @@ else
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" asp-action="MapMarkers" asp-route-templateId="@template.Id">
                                     <i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها
-                                </a></li>
-                                <li><a class="dropdown-item" asp-action="Generate" asp-route-id="@template.Id">
-                                    <i class="bi bi-printer"></i> تولید گزارش
                                 </a></li>
                                 <li><a class="dropdown-item" asp-action="Download" asp-route-id="@template.Id">
                                     <i class="bi bi-download"></i> دانلود قالب
@@ -74,17 +86,20 @@ else
                             <span><i class="bi bi-calendar3"></i> @template.PersianCreateDate</span>
                         </div>
                         <div class="d-flex gap-2 mt-2">
-                            <span class="badge bg-info">
+                            <span class="badge @typeInfo.Item2 @typeInfo.Item3">
+                                <i class="bi @typeInfo.Item2"></i> @typeInfo.Item1
+                            </span>
+                            <span class="badge bg-light text-dark">
                                 <i class="bi bi-tag"></i> @template.MarkerCount مارکر
                             </span>
                             <span class="badge @(template.MappedMarkerCount == template.MarkerCount ? "bg-success" : "bg-warning")">
-                                <i class="bi bi-check2-circle"></i> @template.MappedMarkerCount/@template.MarkerCount نقشه‌برداری شده
+                                <i class="bi bi-check2-circle"></i> @template.MappedMarkerCount/@template.MarkerCount
                             </span>
                         </div>
                     </div>
                     <div class="card-footer bg-white d-flex gap-2">
-                        <a asp-action="Generate" asp-route-id="@template.Id" class="btn btn-success btn-sm flex-fill">
-                            <i class="bi bi-printer"></i> تولید گزارش
+                        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success btn-sm flex-fill">
+                            <i class="bi bi-magic"></i> تولید گزارش
                         </a>
                         <a asp-action="MapMarkers" asp-route-templateId="@template.Id" class="btn btn-outline-primary btn-sm flex-fill">
                             <i class="bi bi-link-45deg"></i> مارکرها

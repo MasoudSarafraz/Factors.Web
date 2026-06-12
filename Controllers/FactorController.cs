@@ -13,11 +13,13 @@ public class FactorController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IReportService _reportService;
+    private readonly ILogger<FactorController> _logger;
 
-    public FactorController(AppDbContext context, IReportService reportService)
+    public FactorController(AppDbContext context, IReportService reportService, ILogger<FactorController> logger)
     {
         _context = context;
         _reportService = reportService;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index(string? search, string? fromDateJalali, string? toDateJalali)

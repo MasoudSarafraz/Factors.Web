@@ -71,15 +71,22 @@
             </div>
 
             <!-- مدیریت -->
+            <div class="sidebar-section">
+                <div class="sidebar-heading">گزارش‌سازی</div>
+                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportBuilder" ? "active" : "")" asp-controller="ReportBuilder" asp-action="Index">
+                    <i class="bi bi-magic"></i> مرکز گزارش‌سازی
+                </a>
+            </div>
+
             @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
             {
                 <div class="sidebar-section">
                     <div class="sidebar-heading">مدیریت</div>
                     <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")" asp-controller="Report" asp-action="Index">
-                        <i class="bi bi-file-earmark-bar-graph"></i> گزارشات
+                        <i class="bi bi-file-earmark-bar-graph"></i> گزارشات PDF
                     </a>
                     <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportTemplate" ? "active" : "")" asp-controller="ReportTemplate" asp-action="Index">
-                        <i class="bi bi-file-earmark-word"></i> قالب گزارش
+                        <i class="bi bi-file-earmark-word"></i> قالب‌های گزارش
                     </a>
                 </div>
             }

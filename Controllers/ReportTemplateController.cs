@@ -57,7 +57,6 @@ public class ReportTemplateController : Controller
             return View(model);
         }
 
-        // فقط فایل Word
         var ext = Path.GetExtension(model.TemplateFile.FileName).ToLower();
         if (ext != ".docx")
         {
@@ -68,7 +67,7 @@ public class ReportTemplateController : Controller
         try
         {
             var template = await _templateService.UploadTemplateAsync(
-                model.Name, model.Description, model.TemplateFile);
+                model.Name, model.Description, model.TemplateFile, model.TemplateType);
 
             TempData["Success"] = $"قالب «{template.Name}» با موفقیت آپلود شد. اکنون مارکرها را تنظیم کنید.";
             return RedirectToAction("MapMarkers", new { templateId = template.Id });
@@ -122,89 +121,6 @@ public class ReportTemplateController : Controller
             _logger.LogError(ex, "خطا در ذخیره نقشه‌برداری");
             TempData["Error"] = $"خطا: {ex.Message}";
             return RedirectToAction("MapMarkers", new { templateId = model.TemplateId });
-        }
-    }
-
-    /// <summary>
-    /// فرم تولید گزارش از قالب
-    /// </summary>
-    public async Task<IActionResult> Generate(int id)
-    {
-        var template = await _context.ReportTemplates
-            .Include(t => t.Markers)
-            .FirstOrDefaultAsync(t => t.Id == id);
-
-        if (template == null)
-        {
-            TempData["Error"] = "قالب یافت نشد";
-            return RedirectToAction("Index");
-        }
-
-        var model = new GenerateReportViewModel
-        {
-            TemplateId = template.Id,
-            TemplateName = template.Name
-        };
-
-        // Materialize first, then project (avoid CS0854: optional args in expression tree)
-        var factorsData = await _context.Factors
-            .Include(f => f.Person)
-            .Include(f => f.FactorItems)
-            .OrderByDescending(f => f.CreateDate)
-            .ToListAsync();
-
-        ViewBag.Factors = factorsData.Select(f => new
-        {
-            f.Id,
-            PersonName = f.Person != null ? f.Person.PersonName : "",
-            PersianDate = PersianDateService.ToPersian(f.CreateDate),
-            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
-        }).ToList();
-
-        return View(model);
-    }
-
-    /// <summary>
-    /// تولید گزارش
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Generate(GenerateReportViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            // Materialize first, then project (avoid CS0854)
-            var factorsData = await _context.Factors
-                .Include(f => f.Person)
-                .Include(f => f.FactorItems)
-                .OrderByDescending(f => f.CreateDate)
-                .ToListAsync();
-
-            ViewBag.Factors = factorsData.Select(f => new
-            {
-                f.Id,
-                PersonName = f.Person != null ? f.Person.PersonName : "",
-                PersianDate = PersianDateService.ToPersian(f.CreateDate),
-                TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty)
-            }).ToList();
-            return View(model);
-        }
-
-        try
-        {
-            var pdfBytes = await _templateService.GenerateReportAsync(model.TemplateId, model.FactorId);
-
-            var template = await _context.ReportTemplates.FindAsync(model.TemplateId);
-            var factor = await _context.Factors.FindAsync(model.FactorId);
-            var fileName = $"{template?.Name ?? "Report"}-Factor-{factor?.Id ?? 0}.docx";
-
-            return File(pdfBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "خطا در تولید گزارش از قالب");
-            TempData["Error"] = $"خطا در تولید گزارش: {ex.Message}";
-            return RedirectToAction("Generate", new { id = model.TemplateId });
         }
     }
 

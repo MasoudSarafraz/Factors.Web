@@ -16,6 +16,11 @@ public class ReportTemplate
     public string? Description { get; set; }
 
     /// <summary>
+    /// نوع قالب گزارش - تعیین‌کننده فلوی تولید و فیلترهای مناسب
+    /// </summary>
+    public ReportTemplateType TemplateType { get; set; } = ReportTemplateType.SingleFactor;
+
+    /// <summary>
     /// مسیر فایل قالب Word روی سرور
     /// </summary>
     [Required]
@@ -39,6 +44,27 @@ public class ReportTemplate
 }
 
 /// <summary>
+/// نوع قالب گزارش - تعیین‌کننده منبع داده اصلی و فلوی تولید
+/// </summary>
+public enum ReportTemplateType
+{
+    /// <summary>گزارش یک فاکتور خاص (فاکتور، رسید، پیش‌فاکتور و ...)</summary>
+    SingleFactor = 0,
+
+    /// <summary>گزارش لیست فاکتورها (بر اساس بازه تاریخ، مشتری و ...)</summary>
+    FactorList = 1,
+
+    /// <summary>گزارش لیست محصولات</summary>
+    ProductList = 2,
+
+    /// <summary>گزارش لیست اشخاص/مشتریان</summary>
+    PersonList = 3,
+
+    /// <summary>گزارش سفارشی با منابع داده ترکیبی</summary>
+    Custom = 4
+}
+
+/// <summary>
 /// نوع مارکر: تکی (Single) یا لیستی (List)
 /// </summary>
 public enum MarkerDataType
@@ -59,7 +85,13 @@ public enum MarkerDataSource
     /// <summary>آیتم‌های فاکتور (سطرهای جدول)</summary>
     FactorItem = 1,
     /// <summary>مشتری</summary>
-    Person = 2
+    Person = 2,
+    /// <summary>محصول</summary>
+    Product = 3,
+    /// <summary>دسته‌بندی محصول</summary>
+    ProductCategory = 4,
+    /// <summary>بسته محصول</summary>
+    ProductPack = 5
 }
 
 public class ReportTemplateMarker
@@ -83,21 +115,30 @@ public class ReportTemplateMarker
     public MarkerDataType DataType { get; set; } = MarkerDataType.Single;
 
     /// <summary>
-    /// منبع داده: فاکتور، آیتم فاکتور، یا مشتری
+    /// منبع داده: فاکتور، آیتم فاکتور، مشتری، محصول و ...
     /// </summary>
     public MarkerDataSource DataSource { get; set; } = MarkerDataSource.Factor;
 
     /// <summary>
     /// نام پراپرتی که مارکر به آن متصل شده - مثلاً PersonName یا TotalAmount
+    /// برای مارکرهای لیستی (ساختاری) این مقدار null است
     /// </summary>
     [MaxLength(200)]
     public string? PropertyPath { get; set; }
 
     /// <summary>
+    /// نام مارکر لیستی پدر - اگر این مارکر داخل جدول یک لیست است
+    /// مثلاً اگر {Descriptionofthepiece} داخل جدول {Items} باشد، این مقدار "Items" است
+    /// </summary>
+    [MaxLength(100)]
+    public string? ParentListMarker { get; set; }
+
+    /// <summary>
     /// آیا مارکر نقشه‌برداری شده؟
+    /// مارکرهای لیستی همیشه "نقشه‌برداری شده" تلقی می‌شوند چون ساختاری هستند
     /// </summary>
     [NotMapped]
-    public bool IsMapped => !string.IsNullOrWhiteSpace(PropertyPath);
+    public bool IsMapped => DataType == MarkerDataType.List || !string.IsNullOrWhiteSpace(PropertyPath);
 
     // Navigation
     [ForeignKey(nameof(TemplateId))]

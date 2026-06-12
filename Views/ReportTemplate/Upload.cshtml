@@ -1,10 +1,11 @@
 @model Factors.Web.Models.ViewModels.ReportTemplateUploadViewModel
+@using Factors.Web.Models.Entities
 @{
     ViewData["Title"] = "آپلود قالب گزارش";
 }
 
 <div class="page-header">
-    <h4><i class="bi bi-cloud-upload"></i> آپلود قالب گزارش جدید</h4>
+    <h4><i class="bi bi-cloud-upload"></i> آپلود قالب گزارش</h4>
     <a asp-action="Index" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-right"></i> بازگشت
     </a>
@@ -13,9 +14,6 @@
 <div class="row">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h6 class="mb-0"><i class="bi bi-file-earmark-plus"></i> اطلاعات قالب</h6>
-            </div>
             <div class="card-body">
                 <form asp-action="Upload" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
@@ -23,25 +21,67 @@
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-bold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="مثال: قالب پیش‌فاکتور" />
+                        <input asp-for="Name" class="form-control" placeholder="مثلاً: فاکتور رسمی، رسید، پیش‌فاکتور..." />
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Description" class="form-label fw-bold"></label>
-                        <textarea asp-for="Description" class="form-control" rows="2" placeholder="توضیحات اختیاری..."></textarea>
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="2" placeholder="توضیح مختصر درباره این قالب..."></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">نوع گزارش</label>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="card border h-100 p-2 template-type-card @(Model.TemplateType == ReportTemplateType.SingleFactor ? "border-primary" : "")" style="cursor:pointer">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="radio" name="TemplateType" value="0" class="form-check-input" 
+                                               checked="@(Model.TemplateType == ReportTemplateType.SingleFactor)" onchange="updateTypeCard(this)" />
+                                        <div>
+                                            <strong class="small"><i class="bi bi-receipt-cutoff"></i> فاکتور تکی</strong>
+                                            <div class="text-muted" style="font-size:0.7rem">فاکتور، رسید، پیش‌فاکتور</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="card border h-100 p-2 template-type-card @(Model.TemplateType == ReportTemplateType.FactorList ? "border-primary" : "")" style="cursor:pointer">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="radio" name="TemplateType" value="1" class="form-check-input"
+                                               checked="@(Model.TemplateType == ReportTemplateType.FactorList)" onchange="updateTypeCard(this)" />
+                                        <div>
+                                            <strong class="small"><i class="bi bi-list-ol"></i> لیست فاکتورها</strong>
+                                            <div class="text-muted" style="font-size:0.7rem">گزارش فروش، گزارش دوره‌ای</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="card border h-100 p-2 template-type-card @(Model.TemplateType == ReportTemplateType.ProductList ? "border-primary" : "")" style="cursor:pointer">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="radio" name="TemplateType" value="2" class="form-check-input"
+                                               checked="@(Model.TemplateType == ReportTemplateType.ProductList)" onchange="updateTypeCard(this)" />
+                                        <div>
+                                            <strong class="small"><i class="bi bi-box"></i> لیست محصولات</strong>
+                                            <div class="text-muted" style="font-size:0.7rem">لیست قیمت، کاتالوگ</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
                         <label asp-for="TemplateFile" class="form-label fw-bold"></label>
-                        <input asp-for="TemplateFile" type="file" accept=".docx" class="form-control" />
+                        <input asp-for="TemplateFile" class="form-control" accept=".docx" />
                         <span asp-validation-for="TemplateFile" class="text-danger small"></span>
                         <div class="form-text">فقط فایل‌های Word (.docx) پذیرفته می‌شوند</div>
                     </div>
 
                     <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-cloud-upload"></i> آپلود و استخراج مارکرها
+                        <i class="bi bi-cloud-upload"></i> آپلود و ادامه
                     </button>
                 </form>
             </div>
@@ -54,29 +94,54 @@
                 <h6 class="mb-0"><i class="bi bi-info-circle"></i> راهنمای مارکرها</h6>
             </div>
             <div class="card-body">
-                <p class="small text-muted mb-2">برای ایجاد مارکر در فایل Word، نام مارکر را داخل آکولاد قرار دهید:</p>
-
-                <div class="alert alert-light small mb-3" dir="ltr" style="font-family: monospace;">
-                    {Buyerdetails}<br />
-                    {date}<br />
-                    {Invoicenumber}
+                <p class="small text-muted mb-2">
+                    در فایل Word خود از مارکرهای زیر استفاده کنید:
+                </p>
+                <div class="mb-2">
+                    <strong class="small">مارکر تکی:</strong>
+                    <code dir="ltr" class="d-block small">{Buyerdetails}</code>
+                    <span class="text-muted small">با یک مقدار جایگزین می‌شود</span>
                 </div>
-
-                <h6 class="small fw-bold text-primary mb-1">مارکر تکی (Single):</h6>
-                <p class="small text-muted mb-2">یک مقدار ساده جایگزین می‌شود. مثل نام مشتری، تاریخ، شماره فاکتور</p>
-
-                <h6 class="small fw-bold text-success mb-1">مارکر لیستی (List):</h6>
-                <p class="small text-muted mb-2">مربوط به جدول آیتم‌هاست. مارکر را در پاراگراف قبل از جدول قرار دهید. سطرهای جدول برای هر آیتم تکرار می‌شوند.</p>
-
-                <div class="alert alert-light small mb-2" dir="ltr" style="font-family: monospace;">
-                    {Items}<br />
-                    --- جدول ---<br />
-                    {Descriptionofthepiece} | {PartQty} | {price} | {total}
+                <div class="mb-2">
+                    <strong class="small">مارکر لیستی:</strong>
+                    <code dir="ltr" class="d-block small">{Items}</code>
+                    <span class="text-muted small">بالای جدول قرار می‌گیرد و سطرها تکرار می‌شوند</span>
                 </div>
-
-                <h6 class="small fw-bold text-warning mb-1">نکته مهم:</h6>
-                <p class="small text-muted mb-0">مارکر لیستی باید دقیقاً در پاراگراف قبل از جدول قرار بگیرد تا سیستم بتواند جدول زیر آن را شناسایی کند.</p>
+                <div class="mb-2">
+                    <strong class="small">مارکرهای داخل جدول:</strong>
+                    <code dir="ltr" class="d-block small">{Descriptionofthepiece} {Qty} {Price}</code>
+                    <span class="text-muted small">در سلول‌های جدول زیر مارکر لیستی</span>
+                </div>
+                <hr />
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>نکته:</strong> مارکرهای شناخته‌شده (مثل <code dir="ltr">{Buyerdetails}</code>، <code dir="ltr">{date}</code> و ...) خودکار شناسایی و متصل می‌شوند.
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .template-type-card {
+        transition: all 0.15s ease;
+    }
+    .template-type-card:has(input:checked) {
+        border-color: #4361ee !important;
+        background: #f0efff;
+    }
+    .template-type-card:hover {
+        border-color: #999 !important;
+    }
+</style>
+
+@section Scripts {
+<script>
+    function updateTypeCard(radio) {
+        document.querySelectorAll('.template-type-card').forEach(function(c) {
+            c.classList.remove('border-primary');
+        });
+        radio.closest('.template-type-card').classList.add('border-primary');
+    }
+</script>
+}
