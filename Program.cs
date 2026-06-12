@@ -65,30 +65,37 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
 
-        // Delete any leftover inconsistent database (e.g. from old EnsureCreated runs)
+        // If an inconsistent database exists (e.g. from old EnsureCreated runs), delete it
         if (await context.Database.CanConnectAsync())
         {
-            try
+            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+            if (appliedMigrations.Any())
             {
                 var conn = context.Database.GetDbConnection();
                 await conn.OpenAsync();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
-                var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
-                await conn.CloseAsync();
-
-                // If Users table doesn't exist but __EFMigrationsHistory does, DB is inconsistent
-                var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-                if (!usersTableExists && appliedMigrations.Any())
+                try
                 {
-                    logger.LogWarning("Inconsistent database detected (history exists but tables missing). Recreating...");
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
+                    var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+                    if (!usersTableExists)
+                    {
+                        logger.LogWarning("Inconsistent database detected. Recreating...");
+                        await conn.CloseAsync();
+                        await context.Database.EnsureDeletedAsync();
+                    }
+                }
+                catch
+                {
+                    logger.LogWarning("Database health check failed. Recreating...");
+                    await conn.CloseAsync();
                     await context.Database.EnsureDeletedAsync();
                 }
-            }
-            catch
-            {
-                logger.LogWarning("Database health check failed. Recreating...");
-                await context.Database.EnsureDeletedAsync();
+                finally
+                {
+                    if (conn.State == System.Data.ConnectionState.Open)
+                        await conn.CloseAsync();
+                }
             }
         }
 
