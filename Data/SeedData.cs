@@ -14,7 +14,18 @@ public static class SeedData
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
         // Apply pending migrations (creates DB if not exists, applies new migrations)
-        await context.Database.MigrateAsync();
+        try
+        {
+            await context.Database.MigrateAsync();
+        }
+        catch
+        {
+            // If migrations folder doesn't exist, ensure DB is created
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        // Ensure new tables exist (for cases where EnsureCreatedAsync was used previously)
+        await EnsureTableExistsAsync(context);
 
         // Seed Roles
         await SeedRolesAsync(roleManager);
@@ -24,6 +35,51 @@ public static class SeedData
 
         // Seed Sample Data
         await SeedSampleDataAsync(context);
+    }
+
+    private static async Task EnsureTableExistsAsync(AppDbContext context)
+    {
+        var conn = context.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        try
+        {
+            // Check if ReportTemplates table exists
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ReportTemplates'";
+            var result = await cmd.ExecuteScalarAsync();
+
+            if (result == null)
+            {
+                // Create ReportTemplates table
+                using var cmd2 = conn.CreateCommand();
+                cmd2.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS ReportTemplates (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL,
+                        Description TEXT,
+                        FilePath TEXT NOT NULL,
+                        OriginalFileName TEXT NOT NULL,
+                        CreateDate TEXT NOT NULL DEFAULT '0001-01-01T00:00:00'
+                    );
+                    CREATE TABLE IF NOT EXISTS ReportTemplateMarkers (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        TemplateId INTEGER NOT NULL,
+                        MarkerName TEXT NOT NULL,
+                        DataType INTEGER NOT NULL DEFAULT 0,
+                        DataSource INTEGER NOT NULL DEFAULT 0,
+                        PropertyPath TEXT,
+                        FOREIGN KEY (TemplateId) REFERENCES ReportTemplates(Id) ON DELETE CASCADE
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_ReportTemplateMarkers_TemplateId ON ReportTemplateMarkers(TemplateId);
+                ";
+                await cmd2.ExecuteNonQueryAsync();
+            }
+        }
+        finally
+        {
+            await conn.CloseAsync();
+        }
     }
 
     private static async Task SeedRolesAsync(RoleManager<AppRole> roleManager)
