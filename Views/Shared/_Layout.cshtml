@@ -78,6 +78,9 @@
                     <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")" asp-controller="Report" asp-action="Index">
                         <i class="bi bi-file-earmark-bar-graph"></i> گزارشات
                     </a>
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportTemplate" ? "active" : "")" asp-controller="ReportTemplate" asp-action="Index">
+                        <i class="bi bi-file-earmark-word"></i> قالب گزارش
+                    </a>
                 </div>
             }
 

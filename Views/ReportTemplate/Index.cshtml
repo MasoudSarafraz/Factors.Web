@@ -1,0 +1,97 @@
+@model Factors.Web.Models.ViewModels.ReportTemplateListViewModel
+@{
+    ViewData["Title"] = "قالب‌های گزارش";
+}
+
+<div class="page-header">
+    <h4><i class="bi bi-file-earmark-word"></i> قالب‌های گزارش</h4>
+    <a asp-action="Upload" class="btn btn-primary">
+        <i class="bi bi-cloud-upload"></i> آپلود قالب جدید
+    </a>
+</div>
+
+@if (!Model.Templates.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-word text-muted" style="font-size:3rem;"></i>
+            <h5 class="mt-3 text-muted">هنوز قالبی آپلود نشده</h5>
+            <p class="text-muted small">فایل Word خود را با مارکرهای {نام مارکر} آپلود کنید تا گزارش سفارشی بسازید</p>
+            <a asp-action="Upload" class="btn btn-primary mt-2">
+                <i class="bi bi-cloud-upload"></i> آپلود اولین قالب
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var template in Model.Templates)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-file-earmark-word text-primary"></i>
+                            @template.Name
+                        </h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" asp-action="MapMarkers" asp-route-templateId="@template.Id">
+                                    <i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها
+                                </a></li>
+                                <li><a class="dropdown-item" asp-action="Generate" asp-route-id="@template.Id">
+                                    <i class="bi bi-printer"></i> تولید گزارش
+                                </a></li>
+                                <li><a class="dropdown-item" asp-action="Download" asp-route-id="@template.Id">
+                                    <i class="bi bi-download"></i> دانلود قالب
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-action="Delete" asp-route-id="@template.Id" method="post"
+                                          onsubmit="return confirm('آیا از حذف این قالب مطمئن هستید؟')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash"></i> حذف
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(template.Description))
+                        {
+                            <p class="text-muted small mb-2">@template.Description</p>
+                        }
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span><i class="bi bi-file-earmark"></i> @template.OriginalFileName</span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span><i class="bi bi-calendar3"></i> @template.PersianCreateDate</span>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <span class="badge bg-info">
+                                <i class="bi bi-tag"></i> @template.MarkerCount مارکر
+                            </span>
+                            <span class="badge @(template.MappedMarkerCount == template.MarkerCount ? "bg-success" : "bg-warning")">
+                                <i class="bi bi-check2-circle"></i> @template.MappedMarkerCount/@template.MarkerCount نقشه‌برداری شده
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex gap-2">
+                        <a asp-action="Generate" asp-route-id="@template.Id" class="btn btn-success btn-sm flex-fill">
+                            <i class="bi bi-printer"></i> تولید گزارش
+                        </a>
+                        <a asp-action="MapMarkers" asp-route-templateId="@template.Id" class="btn btn-outline-primary btn-sm flex-fill">
+                            <i class="bi bi-link-45deg"></i> مارکرها
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

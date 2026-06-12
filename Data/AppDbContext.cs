@@ -19,6 +19,8 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
     public DbSet<Person> Persons { get; set; }
     public DbSet<Factor> Factors { get; set; }
     public DbSet<FactorItems> FactorItems { get; set; }
+    public DbSet<ReportTemplate> ReportTemplates { get; set; }
+    public DbSet<ReportTemplateMarker> ReportTemplateMarkers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -115,6 +117,27 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Price).HasColumnType("DECIMAL(18,2)");
+        });
+
+        // ReportTemplate
+        builder.Entity<ReportTemplate>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).IsRequired().HasMaxLength(200);
+            e.Property(x => x.FilePath).IsRequired();
+            e.Property(x => x.OriginalFileName).IsRequired().HasMaxLength(300);
+            e.HasMany(x => x.Markers)
+             .WithOne(x => x.Template)
+             .HasForeignKey(x => x.TemplateId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ReportTemplateMarker
+        builder.Entity<ReportTemplateMarker>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.MarkerName).IsRequired().HasMaxLength(100);
+            e.Property(x => x.PropertyPath).HasMaxLength(200);
         });
     }
 }

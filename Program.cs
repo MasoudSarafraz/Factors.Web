@@ -52,6 +52,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // Services
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IReportTemplateService, ReportTemplateService>();
 
 // Authorization policies
 builder.Services.AddAuthorization(options =>

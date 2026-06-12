@@ -1,0 +1,82 @@
+@model Factors.Web.Models.ViewModels.ReportTemplateUploadViewModel
+@{
+    ViewData["Title"] = "آپلود قالب گزارش";
+}
+
+<div class="page-header">
+    <h4><i class="bi bi-cloud-upload"></i> آپلود قالب گزارش جدید</h4>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-file-earmark-plus"></i> اطلاعات قالب</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-bold"></label>
+                        <input asp-for="Name" class="form-control" placeholder="مثال: قالب پیش‌فاکتور" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-bold"></label>
+                        <textarea asp-for="Description" class="form-control" rows="2" placeholder="توضیحات اختیاری..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="TemplateFile" class="form-label fw-bold"></label>
+                        <input asp-for="TemplateFile" type="file" accept=".docx" class="form-control" />
+                        <span asp-validation-for="TemplateFile" class="text-danger small"></span>
+                        <div class="form-text">فقط فایل‌های Word (.docx) پذیرفته می‌شوند</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-cloud-upload"></i> آپلود و استخراج مارکرها
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> راهنمای مارکرها</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">برای ایجاد مارکر در فایل Word، نام مارکر را داخل آکولاد قرار دهید:</p>
+
+                <div class="alert alert-light small mb-3" dir="ltr" style="font-family: monospace;">
+                    {Buyerdetails}<br />
+                    {date}<br />
+                    {Invoicenumber}
+                </div>
+
+                <h6 class="small fw-bold text-primary mb-1">مارکر تکی (Single):</h6>
+                <p class="small text-muted mb-2">یک مقدار ساده جایگزین می‌شود. مثل نام مشتری، تاریخ، شماره فاکتور</p>
+
+                <h6 class="small fw-bold text-success mb-1">مارکر لیستی (List):</h6>
+                <p class="small text-muted mb-2">مربوط به جدول آیتم‌هاست. مارکر را در پاراگراف قبل از جدول قرار دهید. سطرهای جدول برای هر آیتم تکرار می‌شوند.</p>
+
+                <div class="alert alert-light small mb-2" dir="ltr" style="font-family: monospace;">
+                    {Items}<br />
+                    --- جدول ---<br />
+                    {Descriptionofthepiece} | {PartQty} | {price} | {total}
+                </div>
+
+                <h6 class="small fw-bold text-warning mb-1">نکته مهم:</h6>
+                <p class="small text-muted mb-0">مارکر لیستی باید دقیقاً در پاراگراف قبل از جدول قرار بگیرد تا سیستم بتواند جدول زیر آن را شناسایی کند.</p>
+            </div>
+        </div>
+    </div>
+</div>
