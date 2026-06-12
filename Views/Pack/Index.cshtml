@@ -15,80 +15,148 @@
     <div class="row g-2">
         <div class="col-md-6">
             <div class="input-group">
-                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در بسته‌ها..." />
-                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در نام یا کد بسته..." />
+                <button class="btn btn-primary" type="submit">جستجو</button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+                }
             </div>
+        </div>
+        <div class="col-md-6 text-start d-flex align-items-center">
+            <span class="text-muted small">
+                <i class="bi bi-box-seam"></i> @Model.Packs.Count() بسته
+            </span>
         </div>
     </div>
 </form>
 
-<!-- Packs -->
-@foreach (var pack in Model.Packs)
+<!-- Packs Grid -->
+@if (Model.Packs.Any())
 {
-    var collapseId = $"pack-items-{pack.Id}";
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#@collapseId">
-            <div class="d-flex align-items-center">
-                <i class="bi bi-box-seam text-primary me-2"></i>
-                <div>
-                    <h6 class="mb-0 fw-bold d-inline">@pack.PackName</h6>
-                    <small class="text-muted ms-2">کد: @pack.PackCode</small>
-                    <span class="badge bg-light text-dark ms-2">@pack.Items.Count() آیتم</span>
-                </div>
-            </div>
-            <div class="d-flex align-items-center" onclick="event.stopPropagation();">
-                <span class="badge bg-success fs-6 me-2">@pack.TotalPrice.ToString("N0") ریال</span>
-                <button class="btn btn-sm btn-outline-info me-1" onclick="addItem(@pack.Id, '@pack.PackName')" title="افزودن آیتم">
-                    <i class="bi bi-plus"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-warning me-1" onclick="editPack(@pack.Id)" title="ویرایش">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-                {
-                    <form asp-action="Delete" asp-route-id="@pack.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این بسته مطمئن هستید؟')">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
-                    </form>
-                }
-                <i class="bi bi-chevron-down text-muted me-1"></i>
-            </div>
-        </div>
-        <div class="collapse show" id="@collapseId">
-            <div class="card-body p-0">
-                @if (pack.Items.Any())
-                {
-                    <div class="px-3 py-2">
-                        @foreach (var item in pack.Items)
-                        {
-                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color:#edf2f7 !important;">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-box text-secondary me-2" style="font-size:0.85rem;"></i>
-                                    <span>@item.ProductName</span>
-                                </div>
-                                <div class="d-flex align-items-center gap-3">
-                                    <span class="text-muted small">@item.Qty × @item.Price.ToString("N0")</span>
-                                    <span class="fw-bold small">@item.TotalPrice.ToString("N0") ریال</span>
-                                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-                                    {
-                                        <form asp-action="DeleteItem" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این آیتم مطمئن هستید؟')">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0 py-0" title="حذف"><i class="bi bi-x"></i></button>
+    <div class="row g-3">
+        @foreach (var pack in Model.Packs)
+        {
+            var collapseId = $"pack-items-{pack.Id}";
+            <div class="col-md-6 col-xl-4">
+                <div class="card border-0 shadow-sm h-100 pack-card">
+                    <!-- Pack Header -->
+                    <div class="card-header bg-white d-flex justify-content-between align-items-start border-bottom-0 pb-0">
+                        <div>
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="pack-icon-wrapper me-2">
+                                    <i class="bi bi-box-seam"></i>
+                                </span>
+                                <h6 class="mb-0 fw-bold">@pack.PackName</h6>
+                            </div>
+                            <small class="text-muted d-block me-4" style="margin-right:2.2rem;">
+                                <i class="bi bi-upc-scan"></i> @pack.PackCode
+                            </small>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="addItem(@pack.Id, '@pack.PackName'); return false;">
+                                        <i class="bi bi-plus-circle text-info"></i> افزودن آیتم
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="editPack(@pack.Id); return false;">
+                                        <i class="bi bi-pencil text-warning"></i> ویرایش
+                                    </a>
+                                </li>
+                                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-action="Delete" asp-route-id="@pack.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این بسته مطمئن هستید؟')">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-trash"></i> حذف
+                                            </button>
                                         </form>
-                                    }
-                                </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Pack Price -->
+                    <div class="px-3 pt-2 pb-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 fs-6">
+                                @pack.TotalPrice.ToString("N0") ریال
+                            </span>
+                            <span class="text-muted small">
+                                <i class="bi bi-layers"></i> @pack.Items.Count() آیتم
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Pack Items -->
+                    <div class="card-body pt-2 pb-0">
+                        @if (pack.Items.Any())
+                        {
+                            <div class="pack-items-list">
+                                @foreach (var item in pack.Items.Take(3))
+                                {
+                                    <div class="d-flex align-items-center justify-content-between py-1.5 border-bottom" style="border-color:#f0f4f8 !important;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-box text-secondary me-2" style="font-size:0.8rem;"></i>
+                                            <span class="small">@item.ProductName</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 small text-muted">
+                                            <span>@item.Qty × @item.Price.ToString("N0")</span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (pack.Items.Count() > 3)
+                                {
+                                    var collapseItemsId = $"more-items-{pack.Id}";
+                                    <div class="collapse" id="@collapseItemsId">
+                                        @foreach (var item in pack.Items.Skip(3))
+                                        {
+                                            <div class="d-flex align-items-center justify-content-between py-1.5 border-bottom" style="border-color:#f0f4f8 !important;">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-box text-secondary me-2" style="font-size:0.8rem;"></i>
+                                                    <span class="small">@item.ProductName</span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2 small text-muted">
+                                                    <span>@item.Qty × @item.Price.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-link text-muted w-100 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseItemsId">
+                                        <span class="show-text">مشاهده همه (@pack.Items.Count() آیتم)</span>
+                                        <span class="hide-text d-none">بستن</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-2 small">
+                                <i class="bi bi-inbox"></i> آیتمی تعریف نشده
                             </div>
                         }
                     </div>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-3">آیتمی تعریف نشده</div>
-                }
+
+                    <!-- Pack Footer -->
+                    <div class="card-footer bg-transparent border-top-0 pt-0 pb-2">
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="addItem(@pack.Id, '@pack.PackName')">
+                            <i class="bi bi-plus"></i> افزودن آیتم
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        }
     </div>
 }
-
-@if (!Model.Packs.Any())
+else
 {
     <div class="text-center text-muted py-5">
         <i class="bi bi-box-seam" style="font-size:3rem;"></i>
@@ -108,11 +176,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">نام بسته</label>
-                        <input type="text" name="PackName" class="form-control" required maxlength="100" />
+                        <input type="text" name="PackName" class="form-control" required maxlength="100" placeholder="مثال: بسته اداری" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">کد بسته</label>
-                        <input type="text" name="PackCode" class="form-control" required maxlength="50" />
+                        <input type="text" name="PackCode" class="form-control" required maxlength="50" placeholder="مثال: PK001" />
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -167,7 +235,7 @@
                     <div class="mb-3">
                         <label class="form-label">محصول</label>
                         <select name="ProductId" id="itemProductId" class="form-select" required>
-                            <option value="">انتخاب کنید</option>
+                            <option value="">جستجوی محصول...</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -202,14 +270,61 @@
     function addItem(packId, packName) {
         $('#itemPackId').val(packId);
         $('#itemPackName').text(packName);
-        $.get('/Product/Search?term=', function(data) {
-            var select = $('#itemProductId');
-            select.empty().append('<option value="">انتخاب کنید</option>');
-            data.forEach(function(p) {
-                select.append('<option value="' + p.id + '">' + p.name + ' (' + p.code + ')</option>');
-            });
-            new bootstrap.Modal($('#itemModal')).show();
+
+        // Initialize Select2 on itemProductId
+        if ($('#itemProductId').data('select2')) {
+            $('#itemProductId').select2('destroy');
+        }
+        $('#itemProductId').select2({
+            rtl: true,
+            placeholder: 'جستجوی محصول...',
+            allowClear: true,
+            dropdownParent: $('#itemModal'),
+            language: {
+                searching: function() { return 'در حال جستجو...'; },
+                noResults: function() { return 'نتیجه‌ای یافت نشد'; }
+            },
+            ajax: {
+                url: '/Product/Search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(function(p) {
+                            return { id: p.id, text: p.name + ' (' + p.code + ') — ' + p.category };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
         });
+
+        new bootstrap.Modal($('#itemModal')).show();
     }
+
+    // Toggle show/hide text for "view more" buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-bs-toggle="collapse"]');
+        if (btn) {
+            var showText = btn.querySelector('.show-text');
+            var hideText = btn.querySelector('.hide-text');
+            if (showText && hideText) {
+                setTimeout(function() {
+                    var target = document.querySelector(btn.getAttribute('data-bs-target'));
+                    if (target && target.classList.contains('show')) {
+                        showText.classList.add('d-none');
+                        hideText.classList.remove('d-none');
+                    } else {
+                        showText.classList.remove('d-none');
+                        hideText.classList.add('d-none');
+                    }
+                }, 350);
+            }
+        }
+    });
 </script>
 }

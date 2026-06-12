@@ -23,7 +23,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--body-bg);
     direction: rtl;
     overflow-x: hidden;
@@ -368,6 +368,123 @@ code {
 /* ---- Persian Datepicker ---- */
 .persian-datepicker-container {
     z-index: 1060 !important;
+}
+
+/* ---- Select2 RTL & Custom ---- */
+.select2-container--default .select2-selection--single {
+    height: 38px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 4px 8px;
+    font-family: 'Vazirmatn', sans-serif;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px;
+    padding-right: 8px;
+    font-size: 0.88rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    left: 8px;
+    right: auto;
+    height: 36px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #6c757d;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--primary-color);
+}
+
+.select2-container .select2-search--dropdown .select2-search__field {
+    font-family: 'Vazirmatn', sans-serif;
+    direction: rtl;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 6px 10px;
+}
+
+.select2-dropdown {
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-family: 'Vazirmatn', sans-serif;
+    direction: rtl;
+}
+
+.select2-results__option {
+    padding: 8px 12px;
+    font-size: 0.88rem;
+}
+
+.select2-selection__clear {
+    left: 8px;
+    right: auto !important;
+}
+
+/* Select2 for small form controls */
+.form-select-sm + .select2-container--default .select2-selection--single {
+    height: 31px;
+    padding: 2px 6px;
+}
+
+.form-select-sm + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 24px;
+    font-size: 0.82rem;
+}
+
+.form-select-sm + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 29px;
+}
+
+/* ---- Pack Cards ---- */
+.pack-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pack-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.pack-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #4361ee 0%, #3a86ff 100%);
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.pack-items-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pack-items-list::-webkit-scrollbar {
+    width: 3px;
+}
+
+.pack-items-list::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 2px;
+}
+
+.py-1\.5 {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
 }
 
 /* ---- Print Styles ---- */

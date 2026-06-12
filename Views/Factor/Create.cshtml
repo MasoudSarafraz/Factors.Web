@@ -1,7 +1,5 @@
 @{
     ViewData["Title"] = "صدور فاکتور";
-    var persons = ViewBag.Persons as dynamic;
-    var products = ViewBag.Products as dynamic;
     var packs = ViewBag.Packs as dynamic;
 }
 @Html.AntiForgeryToken()
@@ -25,11 +23,7 @@
                     <div class="col-md-6">
                         <label class="form-label">مشتری</label>
                         <select id="personSelect" class="form-select" required>
-                            <option value="">انتخاب مشتری...</option>
-                            @foreach (var p in persons)
-                            {
-                                <option value="@p.Id">@p.PersonName (@(p.IsIndividual ? "حقیقی" : "حقوقی"))</option>
-                            }
+                            <option value="">جستجوی مشتری...</option>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -64,11 +58,7 @@
                             <div class="col-md-5">
                                 <label class="form-label small">محصول</label>
                                 <select id="productSelect" class="form-select form-select-sm">
-                                    <option value="">انتخاب محصول...</option>
-                                    @foreach (var p in products)
-                                    {
-                                        <option value="@p.Id" data-code="@p.Code">@p.Name (@p.Code)</option>
-                                    }
+                                    <option value="">جستجوی محصول...</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -91,11 +81,7 @@
                             <div class="col-md-5">
                                 <label class="form-label small">بسته</label>
                                 <select id="packSelect" class="form-select form-select-sm">
-                                    <option value="">انتخاب بسته...</option>
-                                    @foreach (var p in packs)
-                                    {
-                                        <option value="@p.Id" data-code="@p.PackCode">@p.PackName (@p.PackCode)</option>
-                                    }
+                                    <option value="">جستجوی بسته...</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -113,7 +99,7 @@
             </div>
         </div>
 
-        <!-- Factor Items List (Parent/Child with Collapse) -->
+        <!-- Factor Items List -->
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul"></i> آیتم‌های فاکتور</h6>
@@ -180,8 +166,101 @@
     let packData = @Html.Raw(Json.Serialize(packs));
     let packCounter = 0;
 
+    // ---- Select2 Initialization ----
+    function initSelect2() {
+        // Person select - AJAX search
+        $('#personSelect').select2({
+            rtl: true,
+            placeholder: 'جستجوی مشتری...',
+            allowClear: true,
+            language: {
+                searching: function() { return 'در حال جستجو...'; },
+                inputTooShort: function() { return 'حداقل ۱ حرف وارد کنید'; },
+                noResults: function() { return 'نتیجه‌ای یافت نشد'; },
+                errorLoading: function() { return 'خطا در بارگذاری'; }
+            },
+            ajax: {
+                url: '/Person/Search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(function(p) {
+                            return { id: p.id, text: p.name + ' (' + p.type + ')' };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
+        });
+
+        // Product select - AJAX search
+        $('#productSelect').select2({
+            rtl: true,
+            placeholder: 'جستجوی محصول...',
+            allowClear: true,
+            language: {
+                searching: function() { return 'در حال جستجو...'; },
+                inputTooShort: function() { return 'حداقل ۱ حرف وارد کنید'; },
+                noResults: function() { return 'نتیجه‌ای یافت نشد'; },
+                errorLoading: function() { return 'خطا در بارگذاری'; }
+            },
+            ajax: {
+                url: '/Product/Search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(function(p) {
+                            return { id: p.id, text: p.name + ' (' + p.code + ') — ' + p.category };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
+        });
+
+        // Pack select - AJAX search
+        $('#packSelect').select2({
+            rtl: true,
+            placeholder: 'جستجوی بسته...',
+            allowClear: true,
+            language: {
+                searching: function() { return 'در حال جستجو...'; },
+                inputTooShort: function() { return 'حداقل ۱ حرف وارد کنید'; },
+                noResults: function() { return 'نتیجه‌ای یافت نشد'; },
+                errorLoading: function() { return 'خطا در بارگذاری'; }
+            },
+            ajax: {
+                url: '/Pack/Search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term || '' };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(function(p) {
+                            return { id: p.id, text: p.name + ' (' + p.code + ')' };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
+        });
+    }
+
     // Auto-fill price when product selected
-    $('#productSelect').change(function() {
+    $('#productSelect').on('select2:select', function(e) {
         var productId = $(this).val();
         if (productId) {
             $.get('/Factor/GetProductCurrentPrice?productId=' + productId, function(data) {
@@ -194,7 +273,7 @@
 
     function addProductItem() {
         var productId = $('#productSelect').val();
-        var productName = $('#productSelect option:selected').text();
+        var productName = $('#productSelect').select2('data')[0]?.text || '';
         var qty = parseInt($('#productQty').val()) || 0;
         var price = parseFloat($('#productPrice').val()) || 0;
 
@@ -214,14 +293,14 @@
         });
 
         renderItems();
-        $('#productSelect').val('');
+        $('#productSelect').val(null).trigger('change');
         $('#productQty').val(1);
         $('#productPrice').val('');
     }
 
     function addPackItem() {
         var packId = $('#packSelect').val();
-        var packName = $('#packSelect option:selected').text();
+        var packName = $('#packSelect').select2('data')[0]?.text || '';
         var qty = parseInt($('#packQty').val()) || 0;
 
         if (!packId) { alert('لطفاً بسته را انتخاب کنید'); return; }
@@ -232,7 +311,6 @@
 
         var packUid = 'pack-' + (++packCounter);
 
-        // Calculate pack total from sub-items
         var packTotalPrice = 0;
         if (pack.items && pack.items.length > 0) {
             pack.items.forEach(function(item) {
@@ -240,20 +318,18 @@
             });
         }
 
-        // Add parent item (pack header)
         factorItems.push({
             uid: packUid,
             salableId: null,
             packId: parseInt(packId),
             parentId: null,
             qty: qty,
-            price: packTotalPrice / qty, // effective unit price
+            price: packTotalPrice / qty,
             productName: packName,
             isPack: true,
             childCount: pack.items ? pack.items.length : 0
         });
 
-        // Add sub-items
         if (pack.items && pack.items.length > 0) {
             pack.items.forEach(function(item) {
                 factorItems.push({
@@ -270,7 +346,7 @@
         }
 
         renderItems();
-        $('#packSelect').val('');
+        $('#packSelect').val(null).trigger('change');
         $('#packQty').val(1);
     }
 
@@ -278,11 +354,9 @@
         var item = factorItems.find(i => i.uid === uid);
         if (!item) return;
 
-        // If removing a pack, also remove all its children
         if (item.isPack && item.uid) {
             factorItems = factorItems.filter(fi => fi.parentId !== item.uid);
         }
-        // If removing a child, check if parent has no more children
         if (item.parentId) {
             factorItems = factorItems.filter(fi => fi.uid !== item.uid);
             var siblings = factorItems.filter(fi => fi.parentId === item.parentId);
@@ -315,11 +389,10 @@
         var itemNum = 1;
 
         factorItems.forEach(function(item) {
-            var itemTotal = item.isPack ? (item.price * item.qty) : (item.price * item.qty);
+            var itemTotal = item.price * item.qty;
             total += itemTotal;
 
             if (item.isPack) {
-                // Pack parent - collapsible card
                 var childItems = factorItems.filter(fi => fi.parentId === item.uid);
                 var collapseId = 'collapse-' + item.uid;
 
@@ -338,7 +411,6 @@
                 html += '</div>';
                 html += '</div>';
 
-                // Child items (collapsible)
                 html += '<div class="collapse" id="' + collapseId + '">';
                 html += '<div class="ps-4 pe-3 py-1">';
                 childItems.forEach(function(child) {
@@ -360,7 +432,6 @@
                 html += '</div>';
 
                 container.append(html);
-                // Listen for collapse toggle to change icon
                 (function(uid) {
                     var el = document.getElementById('collapse-' + uid);
                     if (el) {
@@ -375,7 +446,6 @@
                 itemNum++;
 
             } else if (!item.parentId) {
-                // Regular product (no parent)
                 var html = '<div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 mb-1" style="background:#f8fafc;">';
                 html += '<div class="d-flex align-items-center">';
                 html += '<span class="badge bg-light text-dark me-2" style="min-width:28px">' + itemNum + '</span>';
@@ -393,14 +463,12 @@
                 container.append(html);
                 itemNum++;
             }
-            // child items are rendered inside their parent pack
         });
 
         var mainItems = factorItems.filter(i => !i.parentId);
         $('#itemCount').text(mainItems.length + ' آیتم');
         $('#summaryItems').text(factorItems.length.toString());
         $('#totalAmount').text(total.toLocaleString() + ' ریال');
-        $('#summaryTotal').text(total.toLocaleString() + ' ریال');
         $('#summaryFinal').text(total.toLocaleString() + ' ریال');
     }
 
@@ -423,7 +491,6 @@
             })
         };
 
-        // Fix parentId: convert back to packId int
         data.items.forEach(function(item) {
             if (item.parentId) {
                 var parentPack = factorItems.find(fi => fi.uid === item.parentId);
@@ -457,8 +524,13 @@
             factorItems = [];
             packCounter = 0;
             renderItems();
-            $('#personSelect').val('');
+            $('#personSelect').val(null).trigger('change');
         }
     }
+
+    // Initialize Select2 on page load
+    $(document).ready(function() {
+        initSelect2();
+    });
 </script>
 }
