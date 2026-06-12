@@ -479,10 +479,9 @@ public class ReportTemplateService : IReportTemplateService
         {
             newRun.RunProperties = runProperties;
         }
-        var newText = new Text(replacedText)
-        {
-            Space = SpaceProcessingModeValues.Preserve
-        };
+        var newText = new Text(replacedText);
+        // Preserve whitespace via xml:space attribute
+        newText.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("xml:space", "", "preserve"));
         newRun.AppendChild(newText);
         paragraph.AppendChild(newRun);
     }
