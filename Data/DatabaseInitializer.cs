@@ -9,7 +9,7 @@ namespace Factors.Web.Data;
 /// کلاس مدیریت اولیه‌سازی دیتابیس
 /// مسئولیت‌ها: ساخت جداول، بروزرسانی اسکیما، درج داده‌های اولیه
 /// </summary>
-public static class DatabaseInitializer
+public class DatabaseInitializer
 {
     public static async Task InitializeAsync(IServiceProvider services)
     {
@@ -29,7 +29,7 @@ public static class DatabaseInitializer
     /// ساخت تمام جداول دیتابیس با Raw SQL
     /// از CREATE TABLE IF NOT EXISTS استفاده میشه تا idempotent باشه
     /// </summary>
-    private static async Task EnsureTablesAsync(AppDbContext context, ILogger<DatabaseInitializer> logger)
+    private static async Task EnsureTablesAsync(AppDbContext context, ILogger logger)
     {
         var connectionString = context.Database.GetConnectionString()!;
         using var conn = new SqliteConnection(connectionString);
@@ -270,7 +270,7 @@ public static class DatabaseInitializer
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static async Task CreateTableAsync(SqliteConnection conn, ILogger<DatabaseInitializer> logger, string tableName, string sql)
+    private static async Task CreateTableAsync(SqliteConnection conn, ILogger logger, string tableName, string sql)
     {
         await ExecuteAsync(conn, sql);
         logger.LogDebug("Table {Table} ensured.", tableName);
@@ -281,7 +281,7 @@ public static class DatabaseInitializer
         await ExecuteAsync(conn, sql);
     }
 
-    private static async Task AddColumnIfNotExistsAsync(SqliteConnection conn, ILogger<DatabaseInitializer> logger, string tableName, string columnName, string columnDef)
+    private static async Task AddColumnIfNotExistsAsync(SqliteConnection conn, ILogger logger, string tableName, string columnName, string columnDef)
     {
         var columns = new List<string>();
         using (var cmd = conn.CreateCommand())
