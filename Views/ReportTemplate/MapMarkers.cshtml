@@ -1,7 +1,6 @@
 @model Factors.Web.Models.ViewModels.MarkerMappingViewModel
 @{
     ViewData["Title"] = $"نقشه‌برداری مارکرها - {Model.TemplateName}";
-    var dataSources = Html.GetEnumSelectList<Factors.Web.Models.Entities.MarkerDataSource>();
 }
 
 <div class="page-header">
@@ -55,7 +54,7 @@
                                     <code class="fs-6" dir="ltr">{@marker.MarkerName}</code>
                                 </td>
                                 <td>
-                                    @if (marker.DataType == Factors.Web.Models.Entities.MarkerDataType.List)
+                                    @if (marker.DataType == MarkerDataType.List)
                                     {
                                         <span class="badge bg-success">
                                             <i class="bi bi-list-ul"></i> لیستی
@@ -71,13 +70,9 @@
                                 <td>
                                     <select name="Mappings[@i].DataSource" class="form-select form-select-sm"
                                             onchange="updateProperties(this, @i)">
-                                        @foreach (var ds in dataSources)
-                                        {
-                                            <option value="@ds.Value"
-                                                    selected="@(marker.DataSource.ToString() == ds.Value)">
-                                                @ds.Text
-                                            </option>
-                                        }
+                                        <option value="0" selected="@(marker.DataSource == MarkerDataSource.Factor)">فاکتور</option>
+                                        <option value="1" selected="@(marker.DataSource == MarkerDataSource.FactorItem)">آیتم فاکتور</option>
+                                        <option value="2" selected="@(marker.DataSource == MarkerDataSource.Person)">مشتری</option>
                                     </select>
                                 </td>
                                 <td>
@@ -128,22 +123,21 @@
 
 @section Scripts {
 <script>
-    // پراپرتی‌های هر منبع داده
-    const propertiesBySource = {
-        @Html.Raw(Json.Serialize(
-            Enum.GetValues(typeof(Factors.Web.Models.Entities.MarkerDataSource))
-                .Cast<Factors.Web.Models.Entities.MarkerDataSource>()
+    var propertiesBySource = @Html.Raw(
+        Json.Serialize(
+            Enum.GetValues(typeof(MarkerDataSource))
+                .Cast<MarkerDataSource>()
                 .ToDictionary(
                     ds => ((int)ds).ToString(),
-                    ds => Factors.Web.Models.ViewModels.AvailableProperties.GetPropertiesForDataSource(ds)
+                    ds => AvailableProperties.GetPropertiesForDataSource(ds)
                 )
-        ))
-    };
+        )
+    );
 
     function updateProperties(dataSourceSelect, index) {
         var sourceValue = dataSourceSelect.value;
         var props = propertiesBySource[sourceValue] || [];
-        var propertySelect = document.querySelector(`select.property-select[data-index="${index}"]`);
+        var propertySelect = document.querySelector('select.property-select[data-index="' + index + '"]');
 
         if (!propertySelect) return;
 
@@ -152,9 +146,9 @@
 
         props.forEach(function(prop) {
             var option = document.createElement('option');
-            option.value = prop.value;
-            option.textContent = prop.label;
-            if (prop.value === currentValue) {
+            option.value = prop.Value;
+            option.textContent = prop.Label;
+            if (prop.Value === currentValue) {
                 option.selected = true;
             }
             propertySelect.appendChild(option);

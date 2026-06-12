@@ -32,6 +32,13 @@ public class ReportController : Controller
     [HttpPost]
     public async Task<IActionResult> Generate(ReportFilterViewModel model)
     {
+        // Null safety
+        if (string.IsNullOrWhiteSpace(model.ReportType))
+        {
+            TempData["Error"] = "نوع گزارش مشخص نشده است";
+            return RedirectToAction("Index");
+        }
+
         // Parse Jalali dates to Gregorian
         if (!string.IsNullOrWhiteSpace(model.FromDateJalali))
             model.FromDate = PersianDateService.ParsePersianDate(model.FromDateJalali);
@@ -56,6 +63,7 @@ public class ReportController : Controller
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Report Error: {ex}");
             TempData["Error"] = $"خطا در تولید گزارش: {ex.Message}";
             return RedirectToAction("Index");
         }
@@ -90,7 +98,7 @@ public class ReportController : Controller
         }).ToList();
 
         var pdfBytes = _reportService.GenerateSalesReportPdf(model, factorViewModels);
-        return File(pdfBytes, "application/pdf", "FactorsReport.pdf");
+        return File(pdfBytes, "application/pdf", "FactorReport.pdf");
     }
 
     private async Task<IActionResult> GenerateProductReport(ReportFilterViewModel model)
