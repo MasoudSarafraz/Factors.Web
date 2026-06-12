@@ -18,140 +18,190 @@
             <i class="bi bi-file-earmark-word text-primary"></i>
             <strong>@Model.TemplateName</strong>
             <span class="badge bg-info">@Model.Markers.Count مارکر</span>
+            <span class="badge bg-success">@Model.Markers.Count(m => m.IsMapped) نقشه‌برداری شده</span>
         </div>
     </div>
 </div>
 
-<form asp-action="MapMarkers" method="post">
+<form asp-action="MapMarkers" method="post" id="mappingForm">
     @Html.AntiForgeryToken()
     <input type="hidden" name="TemplateId" value="@Model.TemplateId" />
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h6 class="mb-0"><i class="bi bi-diagram-3"></i> تنظیم اتصال مارکرها به پراپرتی‌ها</h6>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:30px">#</th>
-                            <th style="width:180px">نام مارکر</th>
-                            <th style="width:100px">نوع</th>
-                            <th style="width:150px">منبع داده</th>
-                            <th>پراپرتی</th>
-                            <th style="width:80px">وضعیت</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (int i = 0; i < Model.Markers.Count; i++)
+    @for (int i = 0; i < Model.Markers.Count; i++)
+    {
+        var marker = Model.Markers[i];
+        var isList = marker.DataType == MarkerDataType.List;
+
+        <div class="card border-0 shadow-sm mb-2 marker-card @(isList ? "border-end border-3 border-success" : "border-end border-3 border-info")">
+            <div class="card-body py-2 px-3">
+                <div class="row align-items-center g-2">
+                    <!-- نام مارکر -->
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center gap-2">
+                            @if (isList)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-list-ul"></i> لیستی</span>
+                            }
+                            else if (marker.IsListItem)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-table"></i> سطر جدول</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info"><i class="bi bi-dot"></i> تکی</span>
+                            }
+                            <code class="fs-6" dir="ltr">{@marker.MarkerName}</code>
+                        </div>
+                        @if (marker.IsListItem)
                         {
-                            var marker = Model.Markers[i];
-                            <tr>
-                                <td class="text-muted">@(i + 1)</td>
-                                <td>
-                                    <input type="hidden" name="Mappings[@i].MarkerId" value="@marker.MarkerId" />
-                                    <code class="fs-6" dir="ltr">{@marker.MarkerName}</code>
-                                </td>
-                                <td>
-                                    @if (marker.DataType == MarkerDataType.List)
-                                    {
-                                        <span class="badge bg-success">
-                                            <i class="bi bi-list-ul"></i> لیستی
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-info">
-                                            <i class="bi bi-dot"></i> تکی
-                                        </span>
-                                    }
-                                </td>
-                                <td>
-                                    <select name="Mappings[@i].DataSource" class="form-select form-select-sm"
-                                            onchange="updateProperties(this, @i)">
-                                        <option value="0" selected="@(marker.DataSource == MarkerDataSource.Factor)">فاکتور</option>
-                                        <option value="1" selected="@(marker.DataSource == MarkerDataSource.FactorItem)">آیتم فاکتور</option>
-                                        <option value="2" selected="@(marker.DataSource == MarkerDataSource.Person)">مشتری</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select name="Mappings[@i].PropertyPath" class="form-select form-select-sm property-select"
-                                            data-index="@i">
-                                        <option value="">-- انتخاب پراپرتی --</option>
-                                        @if (marker.AvailableProperties != null)
-                                        {
-                                            foreach (var prop in marker.AvailableProperties)
-                                            {
-                                                <option value="@prop.Value"
-                                                        selected="@(marker.PropertyPath == prop.Value)">
-                                                    @prop.Label
-                                                </option>
-                                            }
-                                        }
-                                    </select>
-                                </td>
-                                <td>
-                                    @if (marker.IsMapped)
-                                    {
-                                        <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning"><i class="bi bi-exclamation"></i></span>
-                                    }
-                                </td>
-                            </tr>
+                            <small class="text-muted d-block mt-1">
+                                <i class="bi bi-arrow-return-left"></i> زیرمجموعه {@marker.ParentListMarker}
+                            </small>
                         }
-                    </tbody>
-                </table>
+                    </div>
+
+                    <!-- منبع داده -->
+                    <div class="col-md-2">
+                        <input type="hidden" name="Mappings[@i].MarkerId" value="@marker.MarkerId" />
+                        @if (isList)
+                        {
+                            <input type="hidden" name="Mappings[@i].DataSource" value="1" />
+                            <input type="hidden" name="Mappings[@i].PropertyPath" value="" />
+                            <span class="text-muted small">
+                                <i class="bi bi-info-circle"></i> مارکر ساختاری — بدون نقشه‌برداری
+                            </span>
+                        }
+                        else
+                        {
+                            <select name="Mappings[@i].DataSource" class="form-select form-select-sm"
+                                    data-marker-index="@i" onchange="onDataSourceChange(@i)">
+                                <option value="0" selected="@(marker.DataSource == MarkerDataSource.Factor)">فاکتور</option>
+                                <option value="1" selected="@(marker.DataSource == MarkerDataSource.FactorItem)">آیتم فاکتور</option>
+                                <option value="2" selected="@(marker.DataSource == MarkerDataSource.Person)">مشتری</option>
+                            </select>
+                        }
+                    </div>
+
+                    <!-- پراپرتی -->
+                    <div class="col-md-4">
+                        @if (isList)
+                        {
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-dash-circle"></i> نیازی به اتصال نیست
+                            </span>
+                        }
+                        else
+                        {
+                            <select name="Mappings[@i].PropertyPath" class="form-select form-select-sm"
+                                    id="propertySelect_@i" data-marker-index="@i">
+                                <option value="">-- انتخاب پراپرتی --</option>
+                                @if (marker.AvailableProperties != null)
+                                {
+                                    foreach (var prop in marker.AvailableProperties)
+                                    {
+                                        <option value="@prop.Value"
+                                                selected="@(marker.PropertyPath == prop.Value)">
+                                            @prop.Label
+                                        </option>
+                                    }
+                                }
+                            </select>
+                        }
+                    </div>
+
+                    <!-- وضعیت -->
+                    <div class="col-md-1 text-center">
+                        @if (isList)
+                        {
+                            <span class="badge bg-secondary"><i class="bi bi-check-lg"></i></span>
+                        }
+                        else if (marker.IsMapped)
+                        {
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning"><i class="bi bi-exclamation"></i></span>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card-footer bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted small">
-                    <i class="bi bi-info-circle"></i>
-                    مارکرهای لیستی مربوط به سطرهای جدول هستند و پراپرتی‌های آیتم فاکتور را دریافت می‌کنند
-                </span>
-                <button type="submit" class="btn btn-primary px-4">
-                    <i class="bi bi-check-lg"></i> ذخیره نقشه‌برداری
-                </button>
-            </div>
-        </div>
+    }
+
+    <div class="mt-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">
+            <i class="bi bi-info-circle"></i>
+            مارکرهای <span class="badge bg-success">لیستی</span> فقط ساختاری هستند و سطرهای جدول زیرشان تکرار می‌شود.
+            مارکرهای <span class="badge bg-warning text-dark">سطر جدول</span> باید به پراپرتی‌های آیتم فاکتور متصل شوند.
+        </span>
+        <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-check-lg"></i> ذخیره نقشه‌برداری
+        </button>
     </div>
 </form>
 
 @section Scripts {
 <script>
-    var propertiesBySource = @Html.Raw(
-        Json.Serialize(
-            Enum.GetValues(typeof(MarkerDataSource))
-                .Cast<MarkerDataSource>()
-                .ToDictionary(
-                    ds => ((int)ds).ToString(),
-                    ds => AvailableProperties.GetPropertiesForDataSource(ds)
-                )
-        )
-    );
+    // داده‌های پراپرتی‌ها بر اساس منبع داده
+    var propsData = {
+        "0": [  // Factor
+            { v: "Id", l: "شماره فاکتور" },
+            { v: "Invoicenumber", l: "شماره پیش‌فاکتور" },
+            { v: "PersianCreateDate", l: "تاریخ شمسی" },
+            { v: "date", l: "تاریخ (کوتاه)" },
+            { v: "PersonName", l: "نام مشتری" },
+            { v: "Buyerdetails", l: "مشخصات خریدار" },
+            { v: "PersonType", l: "نوع مشتری (حقیقی/حقوقی)" },
+            { v: "TotalAmount", l: "جمع کل (بدون مالیات)" },
+            { v: "sum", l: "جمع کل" },
+            { v: "Totalup", l: "جمع بالایی" },
+            { v: "TaxAmount", l: "مالیات" },
+            { v: "tax", l: "مبلغ مالیات" },
+            { v: "TotalWithTax", l: "جمع با مالیات" },
+            { v: "Totalsum", l: "جمع نهایی" },
+            { v: "TotalItems", l: "تعداد آیتم‌ها" },
+            { v: "TotalQuantity", l: "تعداد کل اقلام" }
+        ],
+        "1": [  // FactorItem
+            { v: "ProductName", l: "نام کالا/محصول" },
+            { v: "Descriptionofthepiece", l: "شرح قلم" },
+            { v: "ProductCode", l: "کد محصول" },
+            { v: "CategoryName", l: "دسته‌بندی محصول" },
+            { v: "Qty", l: "تعداد" },
+            { v: "PartQty", l: "تعداد قلم" },
+            { v: "Price", l: "قیمت واحد" },
+            { v: "price", l: "قیمت واحد (کوتاه)" },
+            { v: "TotalPrice", l: "قیمت کل سطر" },
+            { v: "total", l: "قیمت کل (کوتاه)" },
+            { v: "RowNumber", l: "شماره سطر" },
+            { v: "IsPack", l: "آیا بسته است؟" },
+            { v: "PackName", l: "نام بسته" }
+        ],
+        "2": [  // Person
+            { v: "PersonName", l: "نام شخص/شرکت" },
+            { v: "Buyerdetails", l: "مشخصات خریدار" },
+            { v: "PersonType", l: "نوع (حقیقی/حقوقی)" },
+            { v: "Id", l: "شناسه مشتری" }
+        ]
+    };
 
-    function updateProperties(dataSourceSelect, index) {
-        var sourceValue = dataSourceSelect.value;
-        var props = propertiesBySource[sourceValue] || [];
-        var propertySelect = document.querySelector('select.property-select[data-index="' + index + '"]');
+    function onDataSourceChange(index) {
+        var dsSelect = document.querySelector('select[name="Mappings[' + index + '].DataSource"]');
+        var propSelect = document.getElementById('propertySelect_' + index);
+        if (!dsSelect || !propSelect) return;
 
-        if (!propertySelect) return;
+        var sourceValue = dsSelect.value;
+        var props = propsData[sourceValue] || [];
+        var currentVal = propSelect.value;
 
-        var currentValue = propertySelect.value;
-        propertySelect.innerHTML = '<option value="">-- انتخاب پراپرتی --</option>';
-
-        props.forEach(function(prop) {
-            var option = document.createElement('option');
-            option.value = prop.Value;
-            option.textContent = prop.Label;
-            if (prop.Value === currentValue) {
-                option.selected = true;
-            }
-            propertySelect.appendChild(option);
+        propSelect.innerHTML = '<option value="">-- انتخاب پراپرتی --</option>';
+        props.forEach(function(p) {
+            var opt = document.createElement('option');
+            opt.value = p.v;
+            opt.textContent = p.l;
+            if (p.v === currentVal) opt.selected = true;
+            propSelect.appendChild(opt);
         });
     }
 </script>

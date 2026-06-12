@@ -66,14 +66,42 @@ public class ReportTemplateService : IReportTemplateService
 
         foreach (var marker in extractedMarkers)
         {
+            // Auto-mapping: مارکرهای شناخته‌شده خودکار نقشه‌برداری می‌شوند
+            MarkerDataSource dataSource;
+            string? propertyPath = null;
+
+            if (marker.DataType == MarkerDataType.List)
+            {
+                // مارکر لیستی فقط ساختاری است → نیاز به نقشه‌برداری ندارد
+                dataSource = MarkerDataSource.FactorItem;
+                propertyPath = null;
+            }
+            else if (marker.ParentListMarker != null)
+            {
+                // زیرمجموعه جدول لیستی → منبع داده آیتم فاکتور
+                dataSource = MarkerDataSource.FactorItem;
+            }
+            else
+            {
+                // مارکر تکی مستقل → فاکتور
+                dataSource = MarkerDataSource.Factor;
+            }
+
+            // تلاش برای auto-mapping
+            var autoMap = AvailableProperties.TryAutoMap(marker.Name);
+            if (autoMap.HasValue && marker.DataType != MarkerDataType.List)
+            {
+                dataSource = autoMap.Value.DataSource;
+                propertyPath = autoMap.Value.PropertyPath;
+            }
+
             var templateMarker = new ReportTemplateMarker
             {
                 TemplateId = template.Id,
                 MarkerName = marker.Name,
                 DataType = marker.DataType,
-                DataSource = marker.DataType == MarkerDataType.List
-                    ? MarkerDataSource.FactorItem
-                    : MarkerDataSource.Factor
+                DataSource = dataSource,
+                PropertyPath = propertyPath
             };
             _context.ReportTemplateMarkers.Add(templateMarker);
         }
@@ -194,7 +222,9 @@ public class ReportTemplateService : IReportTemplateService
                 DataType = m.DataType,
                 DataSource = m.DataSource,
                 PropertyPath = m.PropertyPath,
-                AvailableProperties = AvailableProperties.GetPropertiesForDataSource(m.DataSource)
+                AvailableProperties = m.DataType == MarkerDataType.List
+                    ? new List<PropertyOption>()  // لیستی نیاز به پراپرتی ندارد
+                    : AvailableProperties.GetPropertiesForDataSource(m.DataSource)
             }).ToList()
         };
     }
@@ -211,6 +241,9 @@ public class ReportTemplateService : IReportTemplateService
             .Include(f => f.Person)
             .Include(f => f.FactorItems)
                 .ThenInclude(fi => fi.Product)
+                    .ThenInclude(p => p!.Category)
+            .Include(f => f.FactorItems)
+                .ThenInclude(fi => fi.ProductPack)
             .FirstOrDefaultAsync(f => f.Id == factorId);
 
         if (factor == null) throw new ArgumentException("فاکتور یافت نشد");
@@ -260,25 +293,36 @@ public class ReportTemplateService : IReportTemplateService
         var totalAmount = factor.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0;
         var taxAmount = totalAmount * taxRate;
         var totalWithTax = totalAmount + taxAmount;
+        var totalQty = factor.FactorItems?.Sum(fi => fi.Qty) ?? 0;
+        var personType = factor.Person?.IsIndividual == true ? "حقیقی" : (factor.Person?.IsIndividual == false ? "حقوقی" : "");
 
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            // پراپرتی‌های استاندارد
+            // شناسایی
             ["Id"] = factor.Id.ToString(),
-            ["PersonName"] = factor.Person?.PersonName ?? "",
-            ["PersianCreateDate"] = PersianDateService.ToPersian(factor.CreateDate, true),
-            ["TotalAmount"] = totalAmount.ToString("N0"),
-            ["TotalItems"] = (factor.FactorItems?.Count ?? 0).ToString(),
-            ["TaxAmount"] = taxAmount.ToString("N0"),
-            ["TotalWithTax"] = totalWithTax.ToString("N0"),
-            // مارکرهای نمونه فایل کاربر
-            ["Buyerdetails"] = factor.Person?.PersonName ?? "",
-            ["date"] = PersianDateService.ToPersian(factor.CreateDate, true),
             ["Invoicenumber"] = factor.Id.ToString(),
-            ["Totalup"] = totalAmount.ToString("N0"),
+
+            // تاریخ
+            ["PersianCreateDate"] = PersianDateService.ToPersian(factor.CreateDate, true),
+            ["date"] = PersianDateService.ToPersian(factor.CreateDate),
+
+            // مشتری
+            ["PersonName"] = factor.Person?.PersonName ?? "",
+            ["Buyerdetails"] = factor.Person?.PersonName ?? "",
+            ["PersonType"] = personType,
+
+            // مبالغ
+            ["TotalAmount"] = totalAmount.ToString("N0"),
             ["sum"] = totalAmount.ToString("N0"),
+            ["Totalup"] = totalAmount.ToString("N0"),
+            ["TaxAmount"] = taxAmount.ToString("N0"),
             ["tax"] = taxAmount.ToString("N0"),
+            ["TotalWithTax"] = totalWithTax.ToString("N0"),
             ["Totalsum"] = totalWithTax.ToString("N0"),
+
+            // تعداد
+            ["TotalItems"] = (factor.FactorItems?.Count ?? 0).ToString(),
+            ["TotalQuantity"] = totalQty.ToString("N0"),
         };
     }
 
@@ -291,19 +335,35 @@ public class ReportTemplateService : IReportTemplateService
         {
             var item = items[i];
             var productName = item.Product?.Name ?? item.ProductName;
+            var productCode = item.Product?.Code ?? "";
+            var categoryName = item.Product?.Category?.Name ?? "";
+            var isPack = item.PackId.HasValue;
+            var packName = item.ProductPack?.PackName ?? "";
 
             result.Add(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                // نام و شرح
                 ["ProductName"] = productName,
-                ["Qty"] = item.Qty.ToString("N0"),
-                ["Price"] = item.Price.ToString("N0"),
-                ["TotalPrice"] = (item.Price * item.Qty).ToString("N0"),
-                ["RowNumber"] = (i + 1).ToString(),
-                // مارکرهای نمونه فایل کاربر
                 ["Descriptionofthepiece"] = productName,
+                ["ProductCode"] = productCode,
+                ["CategoryName"] = categoryName,
+
+                // تعداد
+                ["Qty"] = item.Qty.ToString("N0"),
                 ["PartQty"] = item.Qty.ToString("N0"),
+
+                // قیمت
+                ["Price"] = item.Price.ToString("N0"),
                 ["price"] = item.Price.ToString("N0"),
+                ["TotalPrice"] = (item.Price * item.Qty).ToString("N0"),
                 ["total"] = (item.Price * item.Qty).ToString("N0"),
+
+                // سطر
+                ["RowNumber"] = (i + 1).ToString(),
+
+                // بسته
+                ["IsPack"] = isPack ? "بله" : "خیر",
+                ["PackName"] = packName,
             });
         }
 
