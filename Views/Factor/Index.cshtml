@@ -6,10 +6,10 @@
 <div class="page-header">
     <h4><i class="bi bi-receipt-cutoff"></i> فاکتورها</h4>
     <div class="d-flex gap-2">
-        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success">
+        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-success btn-sm">
             <i class="bi bi-magic"></i> مرکز گزارش‌سازی
         </a>
-        <a asp-action="Create" class="btn btn-primary">
+        <a asp-action="Create" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg"></i> فاکتور جدید
         </a>
     </div>
@@ -17,27 +17,33 @@
 
 <!-- Search & Filter -->
 <form asp-action="Index" method="get" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-3">
-            <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو نام مشتری یا شماره..." />
-        </div>
-        <div class="col-md-3">
-            <input type="text" name="fromDateJalali" value="@Model.FromDateJalali" class="form-control persian-datepicker" placeholder="از تاریخ شمسی" autocomplete="off" />
-        </div>
-        <div class="col-md-3">
-            <input type="text" name="toDateJalali" value="@Model.ToDateJalali" class="form-control persian-datepicker" placeholder="تا تاریخ شمسی" autocomplete="off" />
-        </div>
-        <div class="col-md-3">
-            <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
+    <div class="search-bar">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <input type="text" name="search" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="جستجو نام مشتری یا شماره..." />
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="fromDateJalali" value="@Model.FromDateJalali" class="form-control form-control-sm persian-datepicker" placeholder="از تاریخ شمسی" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="toDateJalali" value="@Model.ToDateJalali" class="form-control form-control-sm persian-datepicker" placeholder="تا تاریخ شمسی" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-primary btn-sm w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
+            </div>
         </div>
     </div>
 </form>
 
 <!-- Factors Table -->
 <div class="card border-0 shadow-sm">
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-blue"><i class="bi bi-table"></i></span>
+        <span class="header-title">لیست فاکتورها</span>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-compact">
                 <thead>
                     <tr>
                         <th style="width:60px">شماره</th>

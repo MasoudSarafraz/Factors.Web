@@ -7,17 +7,17 @@
     <h4><i class="bi bi-speedometer2"></i> داشبورد</h4>
 </div>
 
-<!-- Stats Cards -->
-<div class="row g-3 mb-4">
+<!-- Stats Cards (Compact) -->
+<div class="row g-3 mb-3">
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-0">
-            <div class="card-body">
+        <div class="card stat-card-compact border-0">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="stat-label">تعداد فاکتورها</div>
-                        <div class="stat-value text-primary">@Model.TotalFactors</div>
+                        <div class="stat-label-sm">تعداد فاکتورها</div>
+                        <div class="stat-value-sm text-primary">@Model.TotalFactors</div>
                     </div>
-                    <div class="stat-icon" style="background:#eef0ff;color:#4361ee;">
+                    <div class="stat-icon-sm icon-badge icon-badge-blue">
                         <i class="bi bi-receipt-cutoff"></i>
                     </div>
                 </div>
@@ -25,14 +25,14 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-0">
-            <div class="card-body">
+        <div class="card stat-card-compact border-0">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="stat-label">فروش کل (ریال)</div>
-                        <div class="stat-value text-success">@Model.TotalSalesAmount.ToString("N0")</div>
+                        <div class="stat-label-sm">فروش کل (ریال)</div>
+                        <div class="stat-value-sm text-success">@Model.TotalSalesAmount.ToString("N0")</div>
                     </div>
-                    <div class="stat-icon" style="background:#e6faf7;color:#2ec4b6;">
+                    <div class="stat-icon-sm icon-badge icon-badge-teal">
                         <i class="bi bi-currency-exchange"></i>
                     </div>
                 </div>
@@ -40,14 +40,14 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-0">
-            <div class="card-body">
+        <div class="card stat-card-compact border-0">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="stat-label">تعداد محصولات</div>
-                        <div class="stat-value text-info">@Model.TotalProducts</div>
+                        <div class="stat-label-sm">تعداد محصولات</div>
+                        <div class="stat-value-sm text-info">@Model.TotalProducts</div>
                     </div>
-                    <div class="stat-icon" style="background:#e8f0fe;color:#3a86ff;">
+                    <div class="stat-icon-sm icon-badge icon-badge-purple">
                         <i class="bi bi-box"></i>
                     </div>
                 </div>
@@ -55,14 +55,14 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card stat-card border-0">
-            <div class="card-body">
+        <div class="card stat-card-compact border-0">
+            <div class="card-body p-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="stat-label">تعداد مشتریان</div>
-                        <div class="stat-value text-warning">@Model.TotalPersons</div>
+                        <div class="stat-label-sm">تعداد مشتریان</div>
+                        <div class="stat-value-sm text-warning">@Model.TotalPersons</div>
                     </div>
-                    <div class="stat-icon" style="background:#fff7e6;color:#ff9f1c;">
+                    <div class="stat-icon-sm icon-badge icon-badge-orange">
                         <i class="bi bi-people"></i>
                     </div>
                 </div>
@@ -71,32 +71,28 @@
     </div>
 </div>
 
-<!-- Secondary Stats -->
-<div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center py-3">
-                <i class="bi bi-folder text-primary" style="font-size: 1.5rem;"></i>
-                <div class="mt-1"><small class="text-muted">دسته‌بندی‌ها</small></div>
-                <strong class="fs-5">@Model.TotalCategories</strong>
-            </div>
-        </div>
+<!-- Secondary Stats (Inline Mini-Badges Strip) -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header card-header-compact bg-white py-2 px-3 d-flex align-items-center">
+        <span class="icon-badge icon-badge-pink me-2"><i class="bi bi-grid-3x3-gap"></i></span>
+        <span class="fw-semibold" style="font-size:0.9rem">خلاصه آماری</span>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center py-3">
-                <i class="bi bi-box-seam text-success" style="font-size: 1.5rem;"></i>
-                <div class="mt-1"><small class="text-muted">بسته‌ها</small></div>
-                <strong class="fs-5">@Model.TotalPacks</strong>
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="d-flex align-items-center gap-1">
+                <span class="icon-badge icon-badge-blue" style="width:24px;height:24px;font-size:0.65rem"><i class="bi bi-folder"></i></span>
+                <span class="text-muted" style="font-size:0.8rem">دسته‌بندی‌ها</span>
+                <strong style="font-size:0.9rem">@Model.TotalCategories</strong>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center py-3">
-                <i class="bi bi-person-gear text-info" style="font-size: 1.5rem;"></i>
-                <div class="mt-1"><small class="text-muted">کاربران</small></div>
-                <strong class="fs-5">@Model.TotalUsers</strong>
+            <div class="d-flex align-items-center gap-1">
+                <span class="icon-badge icon-badge-teal" style="width:24px;height:24px;font-size:0.65rem"><i class="bi bi-box-seam"></i></span>
+                <span class="text-muted" style="font-size:0.8rem">بسته‌ها</span>
+                <strong style="font-size:0.9rem">@Model.TotalPacks</strong>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <span class="icon-badge icon-badge-purple" style="width:24px;height:24px;font-size:0.65rem"><i class="bi bi-person-gear"></i></span>
+                <span class="text-muted" style="font-size:0.8rem">کاربران</span>
+                <strong style="font-size:0.9rem">@Model.TotalUsers</strong>
             </div>
         </div>
     </div>
@@ -106,20 +102,23 @@
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-primary"></i> آخرین فاکتورها</h6>
+            <div class="card-header card-header-compact bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <span class="icon-badge icon-badge-blue me-2"><i class="bi bi-clock-history"></i></span>
+                    <span class="fw-semibold" style="font-size:0.9rem">آخرین فاکتورها</span>
+                </div>
                 <a asp-controller="Factor" asp-action="Index" class="btn btn-sm btn-outline-primary">مشاهده همه</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover table-sm mb-0" style="font-size:0.85rem">
                         <thead>
                             <tr>
-                                <th>شماره</th>
-                                <th>مشتری</th>
-                                <th>تاریخ</th>
-                                <th>آیتم</th>
-                                <th>مبلغ کل</th>
+                                <th style="font-size:0.78rem">شماره</th>
+                                <th style="font-size:0.78rem">مشتری</th>
+                                <th style="font-size:0.78rem">تاریخ</th>
+                                <th style="font-size:0.78rem">آیتم</th>
+                                <th style="font-size:0.78rem">مبلغ کل</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -132,10 +131,10 @@
                                         <td><strong>@factor.Id</strong></td>
                                         <td>@factor.PersonName</td>
                                         <td><small class="text-muted">@factor.PersianCreateDate</small></td>
-                                        <td><span class="badge bg-light text-dark">@factor.TotalItems</span></td>
+                                        <td><span class="badge bg-light text-dark" style="font-size:0.72rem">@factor.TotalItems</span></td>
                                         <td><span class="text-success fw-bold">@factor.TotalAmount.ToString("N0")</span></td>
                                         <td>
-                                            <a asp-controller="Factor" asp-action="Details" asp-route-id="@factor.Id" class="btn btn-sm btn-outline-info">
+                                            <a asp-controller="Factor" asp-action="Details" asp-route-id="@factor.Id" class="btn btn-sm btn-outline-info py-0 px-1" style="font-size:0.75rem">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                         </td>
@@ -144,7 +143,7 @@
                             }
                             else
                             {
-                                <tr><td colspan="6" class="text-center text-muted py-4">فاکتوری ثبت نشده است</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:0.85rem">فاکتوری ثبت نشده است</td></tr>
                             }
                         </tbody>
                     </table>
@@ -153,11 +152,12 @@
         </div>
     </div>
 
-    <!-- Top Products -->
+    <!-- Top Products (Compact) -->
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy text-warning"></i> پرفروش‌ترین محصولات</h6>
+            <div class="card-header card-header-compact bg-white py-2 px-3 d-flex align-items-center">
+                <span class="icon-badge icon-badge-orange me-2"><i class="bi bi-trophy"></i></span>
+                <span class="fw-semibold" style="font-size:0.9rem">پرفروش‌ترین محصولات</span>
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -168,22 +168,22 @@
                         {
                             var rankColors = new[] { "warning", "secondary", "danger" };
                             var rankColor = rank <= 3 ? rankColors[rank - 1] : "light";
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="font-size:0.82rem">
                                 <div class="d-flex align-items-center">
-                                    <span class="badge bg-@rankColor me-2 rounded-pill" style="min-width:28px">@rank</span>
+                                    <span class="badge bg-@rankColor me-2 rounded-pill" style="min-width:24px;font-size:0.7rem">@rank</span>
                                     <div>
-                                        <div class="fw-bold small">@product.ProductName</div>
-                                        <small class="text-muted">تعداد: @product.TotalQty</small>
+                                        <div class="fw-semibold" style="font-size:0.82rem">@product.ProductName</div>
+                                        <small class="text-muted" style="font-size:0.72rem">تعداد: @product.TotalQty</small>
                                     </div>
                                 </div>
-                                <span class="badge bg-primary rounded-pill">@product.TotalAmount.ToString("N0")</span>
+                                <span class="badge bg-primary rounded-pill" style="font-size:0.7rem">@product.TotalAmount.ToString("N0")</span>
                             </div>
                             rank++;
                         }
                     }
                     else
                     {
-                        <div class="list-group-item text-center text-muted py-4">داده‌ای موجود نیست</div>
+                        <div class="list-group-item text-center text-muted py-3" style="font-size:0.85rem">داده‌ای موجود نیست</div>
                     }
                 </div>
             </div>

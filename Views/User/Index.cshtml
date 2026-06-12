@@ -4,37 +4,41 @@
 }
 
 <div class="page-header">
-    <h4><i class="bi bi-person-gear"></i> مدیریت کاربران</h4>
+    <h4><span class="icon-badge icon-badge-purple"><i class="bi bi-person-gear"></i></span> مدیریت کاربران</h4>
     <div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
             <i class="bi bi-person-plus"></i> کاربر جدید
         </button>
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
             <i class="bi bi-shield-plus"></i> نقش جدید
         </button>
     </div>
 </div>
 
 <!-- Search -->
-<form asp-action="Index" method="get" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-6">
-            <div class="input-group">
-                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در کاربران..." />
-                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-body p-2">
+        <form asp-action="Index" method="get" class="search-bar">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <input type="text" name="search" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="جستجو در کاربران..." />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
-</form>
+</div>
 
 <!-- Roles Section -->
 <div class="card border-0 shadow-sm rounded-3 mb-3">
-    <div class="card-header bg-warning text-dark">
-        <h6 class="mb-0"><i class="bi bi-shield-check"></i> نقش‌های سیستم</h6>
+    <div class="card-header-compact">
+        <span class="header-title"><span class="icon-badge icon-badge-orange"><i class="bi bi-shield-check"></i></span> نقش‌های سیستم</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm mb-0">
+            <table class="table table-sm mb-0 table-compact">
                 <thead class="table-light">
                     <tr>
                         <th>نام نقش</th>
@@ -75,12 +79,12 @@
 
 <!-- Users Table -->
 <div class="card border-0 shadow-sm rounded-3">
-    <div class="card-header bg-white">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-people"></i> کاربران سیستم</h6>
+    <div class="card-header-compact">
+        <span class="header-title"><span class="icon-badge icon-badge-purple"><i class="bi bi-people"></i></span> کاربران سیستم</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-compact">
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
@@ -162,29 +166,29 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Create" method="post">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> کاربر جدید</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-blue"><i class="bi bi-person-plus"></i></span> کاربر جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام کامل</label>
-                        <input type="text" name="FullName" class="form-control" required maxlength="150" />
+                        <label class="form-label-compact">نام کامل</label>
+                        <input type="text" name="FullName" class="form-control form-control-sm" required maxlength="150" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام کاربری</label>
-                        <input type="text" name="Username" class="form-control" required maxlength="50" />
+                        <label class="form-label-compact">نام کاربری</label>
+                        <input type="text" name="Username" class="form-control form-control-sm" required maxlength="50" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">ایمیل</label>
-                        <input type="email" name="Email" class="form-control" required />
+                        <label class="form-label-compact">ایمیل</label>
+                        <input type="email" name="Email" class="form-control form-control-sm" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">رمز عبور</label>
-                        <input type="password" name="Password" class="form-control" required minlength="6" />
+                        <label class="form-label-compact">رمز عبور</label>
+                        <input type="password" name="Password" class="form-control form-control-sm" required minlength="6" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نقش‌ها</label>
+                        <label class="form-label-compact">نقش‌ها</label>
                         @foreach (var role in Model.AvailableRoles)
                         {
                             <div class="form-check">
@@ -194,9 +198,9 @@
                         }
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> ایجاد کاربر</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i> ایجاد کاربر</button>
                 </div>
             </form>
         </div>
@@ -208,23 +212,23 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Edit" method="post">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="bi bi-pencil"></i> ویرایش کاربر</h5>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-orange"><i class="bi bi-pencil"></i></span> ویرایش کاربر</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <input type="hidden" name="Id" id="editUserId" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام کامل</label>
-                        <input type="text" name="FullName" id="editFullName" class="form-control" required maxlength="150" />
+                        <label class="form-label-compact">نام کامل</label>
+                        <input type="text" name="FullName" id="editFullName" class="form-control form-control-sm" required maxlength="150" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">ایمیل</label>
-                        <input type="email" name="Email" id="editEmail" class="form-control" required />
+                        <label class="form-label-compact">ایمیل</label>
+                        <input type="email" name="Email" id="editEmail" class="form-control form-control-sm" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">رمز عبور جدید (خالی = بدون تغییر)</label>
-                        <input type="password" name="NewPassword" id="editPassword" class="form-control" minlength="6" />
+                        <label class="form-label-compact">رمز عبور جدید (خالی = بدون تغییر)</label>
+                        <input type="password" name="NewPassword" id="editPassword" class="form-control form-control-sm" minlength="6" />
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
@@ -233,7 +237,7 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نقش‌ها</label>
+                        <label class="form-label-compact">نقش‌ها</label>
                         <div id="editRolesContainer">
                             @foreach (var role in Model.AvailableRoles)
                             {
@@ -245,9 +249,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
                 </div>
             </form>
         </div>
@@ -259,23 +263,23 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="CreateRole" method="post">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-shield-plus"></i> نقش جدید</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-shield-plus"></i></span> نقش جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام نقش (انگلیسی)</label>
-                        <input type="text" name="roleName" class="form-control" required />
+                        <label class="form-label-compact">نام نقش (انگلیسی)</label>
+                        <input type="text" name="roleName" class="form-control form-control-sm" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">توضیحات</label>
-                        <input type="text" name="description" class="form-control" />
+                        <label class="form-label-compact">توضیحات</label>
+                        <input type="text" name="description" class="form-control form-control-sm" />
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> ایجاد نقش</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-info text-white"><i class="bi bi-check-lg"></i> ایجاد نقش</button>
                 </div>
             </form>
         </div>

@@ -4,38 +4,45 @@
 }
 
 <div class="page-header">
-    <h4><i class="bi bi-box"></i> محصولات</h4>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+    <h4><span class="icon-badge icon-badge-blue"><i class="bi bi-box"></i></span> محصولات</h4>
+    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
         <i class="bi bi-plus-lg"></i> محصول جدید
     </button>
 </div>
 
 <!-- Search & Filter -->
-<form asp-action="Index" method="get" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-4">
-            <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در محصولات..." />
-        </div>
-        <div class="col-md-3">
-            <select name="categoryId" class="form-select">
-                <option value="">همه دسته‌بندی‌ها</option>
-                @foreach (var cat in Model.Categories)
-                {
-                    <option value="@cat.Id" selected="@(Model.FilterCategoryId == cat.Id)">@cat.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
-        </div>
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-body p-2">
+        <form asp-action="Index" method="get" class="search-bar">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <input type="text" name="search" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="جستجو در محصولات..." />
+                </div>
+                <div class="col-md-3">
+                    <select name="categoryId" class="form-select form-select-sm">
+                        <option value="">همه دسته‌بندی‌ها</option>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <option value="@cat.Id" selected="@(Model.FilterCategoryId == cat.Id)">@cat.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-sm btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
+                </div>
+            </div>
+        </form>
     </div>
-</form>
+</div>
 
 <!-- Products Table -->
 <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header-compact">
+        <span class="header-title"><span class="icon-badge icon-badge-blue"><i class="bi bi-box"></i></span> لیست محصولات</span>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-compact">
                 <thead class="table-light">
                     <tr>
                         <th style="width:50px">#</th>
@@ -102,22 +109,22 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Create" method="post">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> محصول جدید</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-blue"><i class="bi bi-plus-circle"></i></span> محصول جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام محصول</label>
-                        <input type="text" name="Name" class="form-control" required maxlength="100" placeholder="مثال: لپ‌تاپ Dell" />
+                        <label class="form-label-compact">نام محصول</label>
+                        <input type="text" name="Name" class="form-control form-control-sm" required maxlength="100" placeholder="مثال: لپ‌تاپ Dell" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">کد محصول</label>
-                        <input type="text" name="Code" class="form-control" required maxlength="50" placeholder="مثال: P001" />
+                        <label class="form-label-compact">کد محصول</label>
+                        <input type="text" name="Code" class="form-control form-control-sm" required maxlength="50" placeholder="مثال: P001" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">دسته‌بندی</label>
-                        <select name="CategoryId" class="form-select" required>
+                        <label class="form-label-compact">دسته‌بندی</label>
+                        <select name="CategoryId" class="form-select form-select-sm" required>
                             <option value="">انتخاب کنید</option>
                             @foreach (var cat in Model.Categories)
                             {
@@ -126,17 +133,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">قیمت اولیه (ریال)</label>
-                        <div class="input-group">
-                            <input type="number" name="InitialPrice" class="form-control" min="0" step="1000" placeholder="مثال: 45000000" />
+                        <label class="form-label-compact">قیمت اولیه (ریال)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="InitialPrice" class="form-control form-control-sm" min="0" step="1000" placeholder="مثال: 45000000" />
                             <span class="input-group-text">ریال</span>
                         </div>
                         <div class="form-text">قیمت اولیه محصول. می‌توانید بعداً از بخش «افزودن قیمت» قیمت‌های جدید اضافه کنید.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> ثبت</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i> ثبت</button>
                 </div>
             </form>
         </div>
@@ -148,23 +155,23 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Edit" method="post">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="bi bi-pencil"></i> ویرایش محصول</h5>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-orange"><i class="bi bi-pencil"></i></span> ویرایش محصول</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <input type="hidden" name="Id" id="editId" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام محصول</label>
-                        <input type="text" name="Name" id="editName" class="form-control" required maxlength="100" />
+                        <label class="form-label-compact">نام محصول</label>
+                        <input type="text" name="Name" id="editName" class="form-control form-control-sm" required maxlength="100" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">کد محصول</label>
-                        <input type="text" name="Code" id="editCode" class="form-control" required maxlength="50" />
+                        <label class="form-label-compact">کد محصول</label>
+                        <input type="text" name="Code" id="editCode" class="form-control form-control-sm" required maxlength="50" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">دسته‌بندی</label>
-                        <select name="CategoryId" id="editCategoryId" class="form-select" required>
+                        <label class="form-label-compact">دسته‌بندی</label>
+                        <select name="CategoryId" id="editCategoryId" class="form-select form-select-sm" required>
                             <option value="">انتخاب کنید</option>
                             @foreach (var cat in Model.Categories)
                             {
@@ -173,17 +180,17 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">قیمت فعلی (ریال)</label>
-                        <div class="input-group">
-                            <input type="number" id="editCurrentPrice" class="form-control" min="0" step="1000" />
+                        <label class="form-label-compact">قیمت فعلی (ریال)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="editCurrentPrice" class="form-control form-control-sm" min="0" step="1000" />
                             <span class="input-group-text">ریال</span>
                         </div>
                         <div class="form-text" id="editPriceNote">قیمت فعلی فعال محصول. برای تغییر، مقدار جدید وارد کنید.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
                 </div>
             </form>
         </div>
@@ -195,28 +202,28 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="AddPrice" method="post">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-tag"></i> افزودن قیمت - <span id="priceProductName"></span></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-tag"></i></span> افزودن قیمت - <span id="priceProductName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body-compact">
                     <input type="hidden" name="ProductId" id="priceProductId" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold">قیمت (ریال)</label>
-                        <input type="number" name="Price" class="form-control" required min="0" />
+                        <label class="form-label-compact">قیمت (ریال)</label>
+                        <input type="number" name="Price" class="form-control form-control-sm" required min="0" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تاریخ شروع (شمسی)</label>
-                        <input type="text" name="StartTime" class="form-control persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" required />
+                        <label class="form-label-compact">تاریخ شروع (شمسی)</label>
+                        <input type="text" name="StartTime" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تاریخ پایان (شمسی)</label>
-                        <input type="text" name="EndTime" class="form-control persian-datepicker" placeholder="مثال: 1403/06/31" autocomplete="off" required />
+                        <label class="form-label-compact">تاریخ پایان (شمسی)</label>
+                        <input type="text" name="EndTime" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/06/31" autocomplete="off" required />
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> ثبت قیمت</button>
+                <div class="modal-footer-compact">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-sm btn-info text-white"><i class="bi bi-check-lg"></i> ثبت قیمت</button>
                 </div>
             </form>
         </div>

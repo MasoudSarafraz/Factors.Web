@@ -5,32 +5,36 @@
 
 <div class="page-header">
     <h4><i class="bi bi-box-seam"></i> بسته‌ها</h4>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
         <i class="bi bi-plus-lg"></i> بسته جدید
     </button>
 </div>
 
 <!-- Search -->
-<form asp-action="Index" method="get" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو در نام یا کد بسته..." />
-                <button class="btn btn-primary" type="submit">جستجو</button>
-                @if (!string.IsNullOrEmpty(Model.SearchTerm))
-                {
-                    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
-                }
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-2">
+        <form asp-action="Index" method="get" class="search-bar">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="جستجو در نام یا کد بسته..." />
+                        <button class="btn btn-primary btn-sm" type="submit">جستجو</button>
+                        @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                        {
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x"></i></a>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6 text-start d-flex align-items-center">
+                    <span class="text-muted small">
+                        <i class="bi bi-box-seam"></i> @Model.Packs.Count() بسته
+                    </span>
+                </div>
             </div>
-        </div>
-        <div class="col-md-6 text-start d-flex align-items-center">
-            <span class="text-muted small">
-                <i class="bi bi-box-seam"></i> @Model.Packs.Count() بسته
-            </span>
-        </div>
+        </form>
     </div>
-</form>
+</div>
 
 <!-- Packs Grid -->
 @if (Model.Packs.Any())
@@ -40,17 +44,17 @@
         {
             var collapseId = $"pack-items-{pack.Id}";
             <div class="col-md-6 col-xl-4">
-                <div class="card border-0 shadow-sm h-100 pack-card">
+                <div class="card border-0 shadow-sm h-100 pack-card-compact">
                     <!-- Pack Header -->
                     <div class="card-header bg-white d-flex justify-content-between align-items-start border-bottom-0 pb-0">
                         <div>
                             <div class="d-flex align-items-center mb-1">
-                                <span class="pack-icon-wrapper me-2">
+                                <span class="pack-icon-sm me-2">
                                     <i class="bi bi-box-seam"></i>
                                 </span>
-                                <h6 class="mb-0 fw-bold">@pack.PackName</h6>
+                                <h6 class="mb-0 fw-semibold" style="font-size:0.9rem;">@pack.PackName</h6>
                             </div>
-                            <small class="text-muted d-block me-4" style="margin-right:2.2rem;">
+                            <small class="text-muted d-block me-4" style="margin-right:2rem; font-size:0.75rem;">
                                 <i class="bi bi-upc-scan"></i> @pack.PackCode
                             </small>
                         </div>
@@ -85,30 +89,30 @@
                     </div>
 
                     <!-- Pack Price -->
-                    <div class="px-3 pt-2 pb-1">
+                    <div class="px-3 pt-1 pb-1">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 fs-6">
+                            <span class="badge bg-success bg-opacity-10 text-success px-2 py-1" style="font-size:0.8rem;">
                                 @pack.TotalPrice.ToString("N0") ریال
                             </span>
-                            <span class="text-muted small">
+                            <span class="text-muted" style="font-size:0.75rem;">
                                 <i class="bi bi-layers"></i> @pack.Items.Count() آیتم
                             </span>
                         </div>
                     </div>
 
                     <!-- Pack Items -->
-                    <div class="card-body pt-2 pb-0">
+                    <div class="card-body pt-1 pb-0">
                         @if (pack.Items.Any())
                         {
                             <div class="pack-items-list">
                                 @foreach (var item in pack.Items.Take(3))
                                 {
-                                    <div class="d-flex align-items-center justify-content-between py-1.5 border-bottom" style="border-color:#f0f4f8 !important;">
+                                    <div class="d-flex align-items-center justify-content-between py-1 border-bottom" style="border-color:#f0f4f8 !important;">
                                         <div class="d-flex align-items-center">
-                                            <i class="bi bi-box text-secondary me-2" style="font-size:0.8rem;"></i>
-                                            <span class="small">@item.ProductName</span>
+                                            <i class="bi bi-box text-secondary me-1" style="font-size:0.7rem;"></i>
+                                            <span style="font-size:0.8rem;">@item.ProductName</span>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2 small text-muted">
+                                        <div class="d-flex align-items-center gap-2 text-muted" style="font-size:0.75rem;">
                                             <span>@item.Qty × @item.Price.ToString("N0")</span>
                                         </div>
                                     </div>
@@ -119,12 +123,12 @@
                                     <div class="collapse" id="@collapseItemsId">
                                         @foreach (var item in pack.Items.Skip(3))
                                         {
-                                            <div class="d-flex align-items-center justify-content-between py-1.5 border-bottom" style="border-color:#f0f4f8 !important;">
+                                            <div class="d-flex align-items-center justify-content-between py-1 border-bottom" style="border-color:#f0f4f8 !important;">
                                                 <div class="d-flex align-items-center">
-                                                    <i class="bi bi-box text-secondary me-2" style="font-size:0.8rem;"></i>
-                                                    <span class="small">@item.ProductName</span>
+                                                    <i class="bi bi-box text-secondary me-1" style="font-size:0.7rem;"></i>
+                                                    <span style="font-size:0.8rem;">@item.ProductName</span>
                                                 </div>
-                                                <div class="d-flex align-items-center gap-2 small text-muted">
+                                                <div class="d-flex align-items-center gap-2 text-muted" style="font-size:0.75rem;">
                                                     <span>@item.Qty × @item.Price.ToString("N0")</span>
                                                 </div>
                                             </div>
@@ -139,7 +143,7 @@
                         }
                         else
                         {
-                            <div class="text-center text-muted py-2 small">
+                            <div class="text-center text-muted py-2" style="font-size:0.8rem;">
                                 <i class="bi bi-inbox"></i> آیتمی تعریف نشده
                             </div>
                         }
@@ -169,23 +173,23 @@ else
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Create" method="post">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> بسته جدید</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-blue"><i class="bi bi-plus-circle"></i></span> بسته جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-compact">
                     <div class="mb-3">
-                        <label class="form-label">نام بسته</label>
-                        <input type="text" name="PackName" class="form-control" required maxlength="100" placeholder="مثال: بسته اداری" />
+                        <label class="form-label-compact">نام بسته</label>
+                        <input type="text" name="PackName" class="form-control form-control-sm" required maxlength="100" placeholder="مثال: بسته اداری" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">کد بسته</label>
-                        <input type="text" name="PackCode" class="form-control" required maxlength="50" placeholder="مثال: PK001" />
+                        <label class="form-label-compact">کد بسته</label>
+                        <input type="text" name="PackCode" class="form-control form-control-sm" required maxlength="50" placeholder="مثال: PK001" />
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> ثبت</button>
+                <div class="modal-footer modal-footer-compact">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> ثبت</button>
                 </div>
             </form>
         </div>
@@ -197,24 +201,24 @@ else
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="Edit" method="post">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="bi bi-pencil"></i> ویرایش بسته</h5>
+                <div class="modal-header modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-orange"><i class="bi bi-pencil"></i></span> ویرایش بسته</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-compact">
                     <input type="hidden" name="Id" id="editId" />
                     <div class="mb-3">
-                        <label class="form-label">نام بسته</label>
-                        <input type="text" name="PackName" id="editPackName" class="form-control" required maxlength="100" />
+                        <label class="form-label-compact">نام بسته</label>
+                        <input type="text" name="PackName" id="editPackName" class="form-control form-control-sm" required maxlength="100" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">کد بسته</label>
-                        <input type="text" name="PackCode" id="editPackCode" class="form-control" required maxlength="50" />
+                        <label class="form-label-compact">کد بسته</label>
+                        <input type="text" name="PackCode" id="editPackCode" class="form-control form-control-sm" required maxlength="50" />
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-warning"><i class="bi bi-check-lg"></i> ویرایش</button>
+                <div class="modal-footer modal-footer-compact">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-check-lg"></i> ویرایش</button>
                 </div>
             </form>
         </div>
@@ -226,30 +230,30 @@ else
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="AddItem" method="post">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-plus"></i> افزودن آیتم - <span id="itemPackName"></span></h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-header modal-header-compact">
+                    <h5 class="modal-title"><span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-plus"></i></span> افزودن آیتم - <span id="itemPackName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-compact">
                     <input type="hidden" name="PackId" id="itemPackId" />
                     <div class="mb-3">
-                        <label class="form-label">محصول</label>
-                        <select name="ProductId" id="itemProductId" class="form-select" required>
+                        <label class="form-label-compact">محصول</label>
+                        <select name="ProductId" id="itemProductId" class="form-select form-select-sm" required>
                             <option value="">جستجوی محصول...</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">تعداد</label>
-                        <input type="number" name="Qty" class="form-control" required min="1" value="1" />
+                        <label class="form-label-compact">تعداد</label>
+                        <input type="number" name="Qty" class="form-control form-control-sm" required min="1" value="1" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">قیمت (ریال)</label>
-                        <input type="number" name="Price" class="form-control" required min="0" />
+                        <label class="form-label-compact">قیمت (ریال)</label>
+                        <input type="number" name="Price" class="form-control form-control-sm" required min="0" />
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
-                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> افزودن</button>
+                <div class="modal-footer modal-footer-compact">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">انصراف</button>
+                    <button type="submit" class="btn btn-info text-white btn-sm"><i class="bi bi-check-lg"></i> افزودن</button>
                 </div>
             </form>
         </div>

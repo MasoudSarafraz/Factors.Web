@@ -21,21 +21,19 @@
 <div class="page-header">
     <h4><i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها</h4>
     <div class="d-flex gap-2">
-        <a asp-action="Index" class="btn btn-outline-secondary">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-right"></i> بازگشت
         </a>
     </div>
 </div>
 
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-light">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            <i class="bi bi-file-earmark-word text-primary"></i>
-            <strong>@Model.TemplateName</strong>
-            <span class="badge @typeInfo.Item3"><i class="bi @typeInfo.Item2"></i> @typeInfo.Item1</span>
-            <span class="badge bg-info">@totalMappable مارکر قابل اتصال</span>
-            <span class="badge bg-success">@totalMapped نقشه‌برداری شده</span>
-        </div>
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-blue"><i class="bi bi-file-earmark-word"></i></span>
+        <span class="header-title">@Model.TemplateName</span>
+        <span class="badge @typeInfo.Item3" style="font-size:0.7rem"><i class="bi @typeInfo.Item2"></i> @typeInfo.Item1</span>
+        <span class="badge bg-info" style="font-size:0.7rem">@totalMappable مارکر قابل اتصال</span>
+        <span class="badge bg-success" style="font-size:0.7rem">@totalMapped نقشه‌برداری شده</span>
     </div>
 </div>
 
@@ -52,19 +50,19 @@
         if (group.IsList)
         {
             <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header py-2 px-3" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
+                <div class="card-header-compact" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-list-ul text-success"></i>
-                        <span class="badge bg-success">لیستی</span>
-                        <code class="fs-6" dir="ltr">{@group.MainMarker.MarkerName}</code>
+                        <span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-list-ul"></i></span>
+                        <span class="badge bg-success" style="font-size:0.7rem">لیستی</span>
+                        <code dir="ltr">{@group.MainMarker.MarkerName}</code>
                         <span class="text-muted small">— جدول با @group.ChildMarkers.Count ستون مارکر</span>
-                        <span class="badge bg-light text-dark me-auto">
+                        <span class="badge bg-light text-dark me-auto" style="font-size:0.7rem">
                             <i class="bi bi-info-circle"></i> ساختاری — نیازی به اتصال ندارد
                         </span>
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
+                    <table class="table-compact mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th style="width:30px" class="text-center">#</th>
@@ -152,8 +150,8 @@
                         <div class="col-md-3">
                             <input type="hidden" name="Mappings[@idx].MarkerId" value="@group.MainMarker.MarkerId" />
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-info"><i class="bi bi-dot"></i> تکی</span>
-                                <code class="fs-6" dir="ltr">{@group.MainMarker.MarkerName}</code>
+                                <span class="badge bg-info" style="font-size:0.7rem"><i class="bi bi-dot"></i> تکی</span>
+                                <code dir="ltr">{@group.MainMarker.MarkerName}</code>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -219,7 +217,7 @@
             مارکرهای <span class="badge bg-success">لیستی</span> فقط ساختاری هستند و سطرهای جدول زیرشان تکرار می‌شود.
             مارکرهای <span class="badge bg-info">تکی</span> و مارکرهای داخل جدول باید به پراپرتی‌ها متصل شوند.
         </span>
-        <button type="submit" class="btn btn-primary px-4">
+        <button type="submit" class="btn btn-primary btn-sm px-4">
             <i class="bi bi-check-lg"></i> ذخیره نقشه‌برداری
         </button>
     </div>

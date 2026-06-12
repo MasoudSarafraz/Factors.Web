@@ -6,13 +6,13 @@
 <div class="page-header">
     <h4><i class="bi bi-receipt-cutoff"></i> فاکتور شماره @Model.Id</h4>
     <div class="d-flex gap-2">
-        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success" target="_blank">
+        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
             <i class="bi bi-printer"></i> چاپ PDF
         </a>
-        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-info" target="_blank">
+        <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-info btn-sm" target="_blank">
             <i class="bi bi-magic"></i> گزارش Word
         </a>
-        <a asp-action="Index" class="btn btn-outline-secondary">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-right"></i> بازگشت
         </a>
     </div>
@@ -21,37 +21,37 @@
 <!-- Factor Header -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
-        <div class="row g-3">
+        <div class="row g-2">
             <div class="col-sm-4">
-                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
-                    <div class="stat-icon me-3" style="background:#eef0ff;color:#4361ee;">
+                <div class="stat-card-compact d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#eef0ff;color:#4361ee;width:36px;height:36px;min-width:36px;font-size:0.95rem;">
                         <i class="bi bi-hash"></i>
                     </div>
                     <div>
-                        <small class="text-muted d-block">شماره فاکتور</small>
-                        <strong class="fs-5">@Model.Id</strong>
+                        <small class="text-muted d-block" style="font-size:0.75rem;">شماره فاکتور</small>
+                        <strong style="font-size:0.95rem;">@Model.Id</strong>
                     </div>
                 </div>
             </div>
             <div class="col-sm-4">
-                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
-                    <div class="stat-icon me-3" style="background:#e6faf7;color:#2ec4b6;">
+                <div class="stat-card-compact d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#e6faf7;color:#2ec4b6;width:36px;height:36px;min-width:36px;font-size:0.95rem;">
                         <i class="bi bi-person"></i>
                     </div>
                     <div>
-                        <small class="text-muted d-block">مشتری</small>
-                        <strong>@Model.PersonName</strong>
+                        <small class="text-muted d-block" style="font-size:0.75rem;">مشتری</small>
+                        <strong style="font-size:0.95rem;">@Model.PersonName</strong>
                     </div>
                 </div>
             </div>
             <div class="col-sm-4">
-                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
-                    <div class="stat-icon me-3" style="background:#fff7e6;color:#ff9f1c;">
+                <div class="stat-card-compact d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#fff7e6;color:#ff9f1c;width:36px;height:36px;min-width:36px;font-size:0.95rem;">
                         <i class="bi bi-calendar"></i>
                     </div>
                     <div>
-                        <small class="text-muted d-block">تاریخ</small>
-                        <strong>@Model.PersianCreateDate</strong>
+                        <small class="text-muted d-block" style="font-size:0.75rem;">تاریخ</small>
+                        <strong style="font-size:0.95rem;">@Model.PersianCreateDate</strong>
                     </div>
                 </div>
             </div>
@@ -61,9 +61,10 @@
 
 <!-- Factor Items (Parent/Child with Collapse) -->
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul text-primary"></i> آیتم‌های فاکتور</h6>
-        <span class="badge bg-light text-dark">@Model.TotalItems آیتم</span>
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-teal"><i class="bi bi-list-ul"></i></span>
+        <span class="header-title">آیتم‌های فاکتور</span>
+        <span class="badge bg-light text-dark ms-auto">@Model.TotalItems آیتم</span>
     </div>
     <div class="card-body" id="factorItemsContainer">
         @{
@@ -164,23 +165,23 @@
             rowNum++;
         }
     </div>
-    <div class="card-footer bg-white border-top">
+    <div class="card-footer bg-white border-top py-2">
         <div class="d-flex justify-content-between align-items-center">
-            <span class="fw-bold fs-5">جمع کل:</span>
-            <span class="fw-bold text-success fs-4">@Model.TotalAmount.ToString("N0") ریال</span>
+            <span class="fw-bold" style="font-size:0.9rem;">جمع کل:</span>
+            <span class="fw-bold text-success" style="font-size:1rem;">@Model.TotalAmount.ToString("N0") ریال</span>
         </div>
     </div>
 </div>
 
 <!-- Actions -->
 <div class="d-flex gap-2">
-    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success" target="_blank">
+    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
         <i class="bi bi-printer"></i> چاپ PDF
     </a>
     @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
     {
         <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('آیا از حذف این فاکتور مطمئن هستید؟')">
-            <button type="submit" class="btn btn-outline-danger">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
                 <i class="bi bi-trash"></i> حذف فاکتور
             </button>
         </form>

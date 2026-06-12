@@ -6,7 +6,7 @@
 
 <div class="page-header">
     <h4><i class="bi bi-cloud-upload"></i> آپلود قالب گزارش</h4>
-    <a asp-action="Index" class="btn btn-outline-secondary">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-right"></i> بازگشت
     </a>
 </div>
@@ -20,19 +20,19 @@
                     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
                     <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-bold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="مثلاً: فاکتور رسمی، رسید، پیش‌فاکتور..." />
+                        <label asp-for="Name" class="form-label-compact fw-bold"></label>
+                        <input asp-for="Name" class="form-control form-control-sm" placeholder="مثلاً: فاکتور رسمی، رسید، پیش‌فاکتور..." />
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Description" class="form-label"></label>
-                        <textarea asp-for="Description" class="form-control" rows="2" placeholder="توضیح مختصر درباره این قالب..."></textarea>
+                        <label asp-for="Description" class="form-label-compact"></label>
+                        <textarea asp-for="Description" class="form-control form-control-sm" rows="2" placeholder="توضیح مختصر درباره این قالب..."></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold">نوع گزارش</label>
+                        <label class="form-label-compact fw-bold">نوع گزارش</label>
                         <div class="row g-2">
                             <div class="col-md-4">
                                 <label class="card border h-100 p-2 template-type-card @(Model.TemplateType == ReportTemplateType.SingleFactor ? "border-primary" : "")" style="cursor:pointer">
@@ -74,13 +74,13 @@
                     </div>
 
                     <div class="mb-4">
-                        <label asp-for="TemplateFile" class="form-label fw-bold"></label>
-                        <input asp-for="TemplateFile" class="form-control" accept=".docx" />
+                        <label asp-for="TemplateFile" class="form-label-compact fw-bold"></label>
+                        <input asp-for="TemplateFile" class="form-control form-control-sm" accept=".docx" />
                         <span asp-validation-for="TemplateFile" class="text-danger small"></span>
                         <div class="form-text">فقط فایل‌های Word (.docx) پذیرفته می‌شوند</div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary px-4">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
                         <i class="bi bi-cloud-upload"></i> آپلود و ادامه
                     </button>
                 </form>
@@ -90,8 +90,9 @@
 
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light">
-                <h6 class="mb-0"><i class="bi bi-info-circle"></i> راهنمای مارکرها</h6>
+            <div class="card-header-compact">
+                <span class="icon-badge icon-badge-orange"><i class="bi bi-info-circle"></i></span>
+                <span class="header-title">راهنمای مارکرها</span>
             </div>
             <div class="card-body">
                 <p class="small text-muted mb-2">
