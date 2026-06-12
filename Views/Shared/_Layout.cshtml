@@ -36,7 +36,13 @@
                     <i class="bi bi-person-circle"></i> @User.Identity?.Name
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout"><i class="bi bi-box-arrow-left"></i> خروج</a></li>
+                    <li>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                            <button type="submit" class="dropdown-item">
+                                <i class="bi bi-box-arrow-left"></i> خروج
+                            </button>
+                        </form>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -102,6 +108,9 @@
             {
                 <div class="sidebar-section">
                     <div class="sidebar-heading">تنظیمات</div>
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
+                        <i class="bi bi-gear"></i> تنظیمات سیستم
+                    </a>
                     <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "User" ? "active" : "")" asp-controller="User" asp-action="Index">
                         <i class="bi bi-person-gear"></i> مدیریت کاربران
                     </a>

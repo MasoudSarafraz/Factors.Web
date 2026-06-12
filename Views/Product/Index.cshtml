@@ -109,11 +109,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold">نام محصول</label>
-                        <input type="text" name="Name" class="form-control" required maxlength="100" />
+                        <input type="text" name="Name" class="form-control" required maxlength="100" placeholder="مثال: لپ‌تاپ Dell" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">کد محصول</label>
-                        <input type="text" name="Code" class="form-control" required maxlength="50" />
+                        <input type="text" name="Code" class="form-control" required maxlength="50" placeholder="مثال: P001" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">دسته‌بندی</label>
@@ -124,6 +124,14 @@
                                 <option value="@cat.Id">@cat.Name</option>
                             }
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">قیمت اولیه (ریال)</label>
+                        <div class="input-group">
+                            <input type="number" name="InitialPrice" class="form-control" min="0" step="1000" placeholder="مثال: 45000000" />
+                            <span class="input-group-text">ریال</span>
+                        </div>
+                        <div class="form-text">قیمت اولیه محصول. می‌توانید بعداً از بخش «افزودن قیمت» قیمت‌های جدید اضافه کنید.</div>
                     </div>
                 </div>
                 <div class="modal-footer">

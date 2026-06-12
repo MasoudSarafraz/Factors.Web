@@ -17,6 +17,12 @@ public class ProductViewModel
     [Required(ErrorMessage = "دسته‌بندی محصول الزامی است")]
     public int CategoryId { get; set; }
 
+    /// <summary>
+    /// قیمت اولیه محصول (اختیاری - فقط در زمان ایجاد)
+    /// </summary>
+    [Range(0, double.MaxValue, ErrorMessage = "قیمت نمی‌تواند منفی باشد")]
+    public decimal? InitialPrice { get; set; }
+
     public string CategoryName { get; set; } = string.Empty;
     public string PersianCreateDate { get; set; } = string.Empty;
     public List<ProductPriceViewModel> Prices { get; set; } = new();

@@ -659,6 +659,29 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
+
+        modelBuilder.Entity("Factors.Web.Models.Entities.AppSetting", b =>
+        {
+            b.Property<int>("Id")
+                .ValueGeneratedOnAdd()
+                .HasColumnType("INTEGER");
+
+            b.Property<string>("Key")
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasColumnType("TEXT");
+
+            b.Property<string>("Value")
+                .HasMaxLength(2000)
+                .HasColumnType("TEXT");
+
+            b.HasKey("Id");
+
+            b.HasIndex("Key")
+                .IsUnique();
+
+            b.ToTable("AppSettings", (string)null);
+        });
 #pragma warning restore 612, 618
     }
 }

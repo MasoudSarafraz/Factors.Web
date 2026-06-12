@@ -21,6 +21,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
     public DbSet<FactorItems> FactorItems { get; set; }
     public DbSet<ReportTemplate> ReportTemplates { get; set; }
     public DbSet<ReportTemplateMarker> ReportTemplateMarkers { get; set; }
+    public DbSet<AppSetting> AppSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -140,6 +141,15 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
             e.Property(x => x.MarkerName).IsRequired().HasMaxLength(100);
             e.Property(x => x.PropertyPath).HasMaxLength(200);
             e.Property(x => x.ParentListMarker).HasMaxLength(100);
+        });
+
+        // AppSetting
+        builder.Entity<AppSetting>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Key).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Key).IsUnique();
+            e.Property(x => x.Value).HasMaxLength(2000);
         });
     }
 }

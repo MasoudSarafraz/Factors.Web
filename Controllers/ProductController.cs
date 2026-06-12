@@ -101,6 +101,21 @@ public class ProductController : Controller
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
+        // Save initial price if provided
+        if (model.InitialPrice.HasValue && model.InitialPrice.Value > 0)
+        {
+            var price = new ProductPrice
+            {
+                ProductId = product.Id,
+                Price = model.InitialPrice.Value,
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow.AddYears(1),
+                CreateDate = DateTime.UtcNow
+            };
+            _context.ProductPrices.Add(price);
+            await _context.SaveChangesAsync();
+        }
+
         TempData["Success"] = "محصول با موفقیت ثبت شد";
         return RedirectToAction("Index");
     }
