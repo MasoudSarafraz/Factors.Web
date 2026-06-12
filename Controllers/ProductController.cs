@@ -34,26 +34,27 @@ public class ProductController : Controller
             query = query.Where(p => p.CategoryId == categoryId.Value);
         }
 
-        var products = await query
+        var productList = await query
             .OrderByDescending(p => p.CreateDate)
-            .Select(p => new ProductViewModel
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Code = p.Code,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category!.Name,
-                PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
-                Prices = p.ProductPrices.Select(pp => new ProductPriceViewModel
-                {
-                    Id = pp.Id,
-                    Price = pp.Price,
-                    StartTime = PersianDateService.ToPersian(pp.StartTime),
-                    EndTime = PersianDateService.ToPersian(pp.EndTime),
-                    ProductId = pp.ProductId
-                }).ToList()
-            })
             .ToListAsync();
+
+        var products = productList.Select(p => new ProductViewModel
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Code = p.Code,
+            CategoryId = p.CategoryId,
+            CategoryName = p.Category?.Name ?? "",
+            PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
+            Prices = p.ProductPrices.Select(pp => new ProductPriceViewModel
+            {
+                Id = pp.Id,
+                Price = pp.Price,
+                StartTime = PersianDateService.ToPersian(pp.StartTime),
+                EndTime = PersianDateService.ToPersian(pp.EndTime),
+                ProductId = pp.ProductId
+            }).ToList()
+        }).ToList();
 
         var categories = await _context.ProductCategories
             .OrderBy(c => c.Name)

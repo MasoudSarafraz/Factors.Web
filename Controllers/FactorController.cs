@@ -42,18 +42,19 @@ public class FactorController : Controller
             query = query.Where(f => f.CreateDate <= toDate.Value.AddDays(1));
         }
 
-        var factors = await query
+        var factorList = await query
             .OrderByDescending(f => f.CreateDate)
-            .Select(f => new FactorViewModel
-            {
-                Id = f.Id,
-                PersonId = f.PersonId,
-                PersonName = f.Person!.PersonName,
-                PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
-                TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
-                TotalItems = f.FactorItems.Count
-            })
             .ToListAsync();
+
+        var factors = factorList.Select(f => new FactorViewModel
+        {
+            Id = f.Id,
+            PersonId = f.PersonId,
+            PersonName = f.Person?.PersonName ?? "",
+            PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
+            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
+            TotalItems = f.FactorItems.Count
+        }).ToList();
 
         var model = new FactorListViewModel
         {

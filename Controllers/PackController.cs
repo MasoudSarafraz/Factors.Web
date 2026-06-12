@@ -29,26 +29,27 @@ public class PackController : Controller
             query = query.Where(p => p.PackName.Contains(search) || p.PackCode.Contains(search));
         }
 
-        var packs = await query
+        var packList = await query
             .OrderByDescending(p => p.CreateDate)
-            .Select(p => new PackViewModel
-            {
-                Id = p.Id,
-                PackName = p.PackName,
-                PackCode = p.PackCode,
-                PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
-                TotalPrice = p.PackItems.Sum(pi => pi.Price * pi.Qty),
-                Items = p.PackItems.Select(pi => new PackItemViewModel
-                {
-                    Id = pi.Id,
-                    ProductId = pi.ProductId,
-                    ProductName = pi.Product!.Name,
-                    Qty = pi.Qty,
-                    Price = pi.Price,
-                    PackId = pi.PackId
-                }).ToList()
-            })
             .ToListAsync();
+
+        var packs = packList.Select(p => new PackViewModel
+        {
+            Id = p.Id,
+            PackName = p.PackName,
+            PackCode = p.PackCode,
+            PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
+            TotalPrice = p.PackItems.Sum(pi => pi.Price * pi.Qty),
+            Items = p.PackItems.Select(pi => new PackItemViewModel
+            {
+                Id = pi.Id,
+                ProductId = pi.ProductId,
+                ProductName = pi.Product?.Name ?? "",
+                Qty = pi.Qty,
+                Price = pi.Price,
+                PackId = pi.PackId
+            }).ToList()
+        }).ToList();
 
         var model = new PackListViewModel
         {

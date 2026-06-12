@@ -1,5 +1,6 @@
 using Factors.Web.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Factors.Web.Data;
 

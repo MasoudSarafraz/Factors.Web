@@ -28,17 +28,18 @@ public class PersonController : Controller
             query = query.Where(p => p.PersonName.Contains(search));
         }
 
-        var persons = await query
+        var personList = await query
             .OrderByDescending(p => p.CreateDate)
-            .Select(p => new PersonViewModel
-            {
-                Id = p.Id,
-                PersonName = p.PersonName,
-                IsIndividual = p.IsIndividual,
-                PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
-                FactorCount = p.Factors.Count
-            })
             .ToListAsync();
+
+        var persons = personList.Select(p => new PersonViewModel
+        {
+            Id = p.Id,
+            PersonName = p.PersonName,
+            IsIndividual = p.IsIndividual,
+            PersianCreateDate = PersianDateService.ToPersian(p.CreateDate),
+            FactorCount = p.Factors.Count
+        }).ToList();
 
         var model = new PersonListViewModel
         {

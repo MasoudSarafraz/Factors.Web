@@ -90,7 +90,6 @@ public class ReportService : IReportService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.ContentDirection(ContentDirection.RightToLeft);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
 
                 page.Header().Element(compose => ComposeHeader(compose, $"فاکتور شماره {factor.Id}"));
@@ -118,7 +117,6 @@ public class ReportService : IReportService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.ContentDirection(ContentDirection.RightToLeft);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
 
                 page.Header().Element(compose => ComposeHeader(compose, "گزارش فروش"));
@@ -173,7 +171,6 @@ public class ReportService : IReportService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.ContentDirection(ContentDirection.RightToLeft);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
 
                 page.Header().Element(compose => ComposeHeader(compose, "گزارش محصولات"));

@@ -33,37 +33,38 @@ public class UserController : Controller
 
         var userList = await users
             .OrderByDescending(u => u.CreateDate)
-            .Select(u => new UserViewModel
-            {
-                Id = u.Id,
-                Username = u.UserName ?? "",
-                FullName = u.FullName,
-                Email = u.Email ?? "",
-                IsActive = u.IsActive,
-                PersianCreateDate = PersianDateService.ToPersian(u.CreateDate),
-                LastLoginDate = u.LastLoginDate
-            })
             .ToListAsync();
 
+        var userViewModels = userList.Select(u => new UserViewModel
+        {
+            Id = u.Id,
+            Username = u.UserName ?? "",
+            FullName = u.FullName,
+            Email = u.Email ?? "",
+            IsActive = u.IsActive,
+            PersianCreateDate = PersianDateService.ToPersian(u.CreateDate),
+            LastLoginDate = u.LastLoginDate
+        }).ToList();
+
         // Add roles
-        foreach (var user in userList)
+        foreach (var user in userViewModels)
         {
             var appUser = await _userManager.FindByIdAsync(user.Id.ToString());
             if (appUser != null)
             {
-                var roles = await _userManager.GetRolesAsync(appUser);
-                user.Roles = string.Join(", ", roles);
+                var userRoles = await _userManager.GetRolesAsync(appUser);
+                user.Roles = string.Join(", ", userRoles);
             }
         }
 
-        var roles = await _roleManager.Roles
+        var availableRoles = await _roleManager.Roles
             .Select(r => new RoleViewModel { Id = r.Id, Name = r.Name, Description = r.Description })
             .ToListAsync();
 
         var model = new UserListViewModel
         {
-            Users = userList,
-            AvailableRoles = roles,
+            Users = userViewModels,
+            AvailableRoles = availableRoles,
             SearchTerm = search ?? ""
         };
 

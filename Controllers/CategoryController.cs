@@ -28,16 +28,17 @@ public class CategoryController : Controller
             query = query.Where(c => c.Name.Contains(search));
         }
 
-        var categories = await query
+        var categoryList = await query
             .OrderByDescending(c => c.CreateDate)
-            .Select(c => new CategoryViewModel
-            {
-                Id = c.Id,
-                Name = c.Name,
-                PersianCreateDate = PersianDateService.ToPersian(c.CreateDate),
-                ProductCount = c.Products.Count
-            })
             .ToListAsync();
+
+        var categories = categoryList.Select(c => new CategoryViewModel
+        {
+            Id = c.Id,
+            Name = c.Name,
+            PersianCreateDate = PersianDateService.ToPersian(c.CreateDate),
+            ProductCount = c.Products.Count
+        }).ToList();
 
         var model = new CategoryListViewModel
         {
