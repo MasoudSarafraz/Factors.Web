@@ -10,7 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name)));
 
 builder.Services.AddIdentity<AppUser, AppRole>(options =>
 {
@@ -63,39 +65,30 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
 
-        // Consistency check: if migration history exists but tables are missing,
-        // the database is in an inconsistent state (e.g. leftover from EnsureCreated).
-        // Delete and let MigrateAsync recreate everything from scratch.
+        // Delete any leftover inconsistent database (e.g. from old EnsureCreated runs)
         if (await context.Database.CanConnectAsync())
         {
-            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-            if (appliedMigrations.Any())
+            try
             {
-                var connection = context.Database.GetDbConnection();
-                await connection.OpenAsync();
-                try
+                var conn = context.Database.GetDbConnection();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
+                var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+                await conn.CloseAsync();
+
+                // If Users table doesn't exist but __EFMigrationsHistory does, DB is inconsistent
+                var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+                if (!usersTableExists && appliedMigrations.Any())
                 {
-                    using var cmd = connection.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('Users','Roles','Products','Factors')";
-                    var tableCount = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-                    if (tableCount < 4)
-                    {
-                        logger.LogWarning("Inconsistent database: migration history exists but critical tables are missing. Recreating database...");
-                        await connection.CloseAsync();
-                        await context.Database.EnsureDeletedAsync();
-                    }
-                }
-                catch
-                {
-                    logger.LogWarning("Database health check failed. Recreating database...");
-                    await connection.CloseAsync();
+                    logger.LogWarning("Inconsistent database detected (history exists but tables missing). Recreating...");
                     await context.Database.EnsureDeletedAsync();
                 }
-                finally
-                {
-                    if (connection.State == System.Data.ConnectionState.Open)
-                        await connection.CloseAsync();
-                }
+            }
+            catch
+            {
+                logger.LogWarning("Database health check failed. Recreating...");
+                await context.Database.EnsureDeletedAsync();
             }
         }
 
