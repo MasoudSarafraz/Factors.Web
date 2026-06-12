@@ -62,6 +62,43 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
+
+        // Consistency check: if migration history exists but tables are missing,
+        // the database is in an inconsistent state (e.g. leftover from EnsureCreated).
+        // Delete and let MigrateAsync recreate everything from scratch.
+        if (await context.Database.CanConnectAsync())
+        {
+            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+            if (appliedMigrations.Any())
+            {
+                var connection = context.Database.GetDbConnection();
+                await connection.OpenAsync();
+                try
+                {
+                    using var cmd = connection.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('Users','Roles','Products','Factors')";
+                    var tableCount = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                    if (tableCount < 4)
+                    {
+                        logger.LogWarning("Inconsistent database: migration history exists but critical tables are missing. Recreating database...");
+                        await connection.CloseAsync();
+                        await context.Database.EnsureDeletedAsync();
+                    }
+                }
+                catch
+                {
+                    logger.LogWarning("Database health check failed. Recreating database...");
+                    await connection.CloseAsync();
+                    await context.Database.EnsureDeletedAsync();
+                }
+                finally
+                {
+                    if (connection.State == System.Data.ConnectionState.Open)
+                        await connection.CloseAsync();
+                }
+            }
+        }
+
         await context.Database.MigrateAsync();
         await SeedData.InitializeAsync(services);
         logger.LogInformation("Database initialized successfully.");
