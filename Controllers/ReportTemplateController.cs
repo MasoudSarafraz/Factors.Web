@@ -125,6 +125,71 @@ public class ReportTemplateController : Controller
     }
 
     /// <summary>
+    /// فرم ویرایش قالب
+    /// </summary>
+    public async Task<IActionResult> Edit(int id)
+    {
+        var template = await _context.ReportTemplates.FindAsync(id);
+        if (template == null)
+        {
+            TempData["Error"] = "قالب یافت نشد";
+            return RedirectToAction("Index");
+        }
+
+        var model = new ReportTemplateEditViewModel
+        {
+            Id = template.Id,
+            Name = template.Name,
+            Description = template.Description,
+            TemplateType = template.TemplateType,
+            OriginalFileName = template.OriginalFileName
+        };
+
+        return View(model);
+    }
+
+    /// <summary>
+    /// ویرایش قالب
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(ReportTemplateEditViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        // Validate file extension if provided
+        if (model.TemplateFile != null && model.TemplateFile.Length > 0)
+        {
+            var ext = Path.GetExtension(model.TemplateFile.FileName).ToLower();
+            if (ext != ".docx")
+            {
+                ModelState.AddModelError("TemplateFile", "فقط فایل‌های Word (.docx) پذیرفته می‌شوند");
+                return View(model);
+            }
+        }
+
+        try
+        {
+            var template = await _templateService.UpdateTemplateAsync(
+                model.Id, model.Name, model.Description, model.TemplateType, model.TemplateFile);
+
+            TempData["Success"] = $"قالب «{template.Name}» با موفقیت ویرایش شد";
+            return RedirectToAction("Index");
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "خطا در ویرایش قالب گزارش");
+            ModelState.AddModelError("", $"خطا در ویرایش قالب: {ex.Message}");
+            return View(model);
+        }
+    }
+
+    /// <summary>
     /// حذف قالب
     /// </summary>
     [HttpPost]

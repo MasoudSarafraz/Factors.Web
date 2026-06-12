@@ -55,6 +55,9 @@ else
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@template.Id">
+                                    <i class="bi bi-pencil-square"></i> ویرایش
+                                </a></li>
                                 <li><a class="dropdown-item" asp-action="MapMarkers" asp-route-templateId="@template.Id">
                                     <i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها
                                 </a></li>
