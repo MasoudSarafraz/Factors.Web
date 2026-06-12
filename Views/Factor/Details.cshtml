@@ -16,81 +16,142 @@
 </div>
 
 <!-- Factor Header -->
-<div class="card border-0 shadow-sm rounded-3 mb-3">
+<div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="bi bi-hash text-primary fs-5 me-2"></i>
-                    <span class="text-muted">شماره فاکتور:</span>
-                    <strong class="ms-2 fs-5">@Model.Id</strong>
+    <div class="row g-3">
+            <div class="col-sm-4">
+                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#eef0ff;color:#4361ee;">
+                        <i class="bi bi-hash"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">شماره فاکتور</small>
+                        <strong class="fs-5">@Model.Id</strong>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="bi bi-person text-primary fs-5 me-2"></i>
-                    <span class="text-muted">مشتری:</span>
-                    <strong class="ms-2">@Model.PersonName</strong>
+            <div class="col-sm-4">
+                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#e6faf7;color:#2ec4b6;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">مشتری</small>
+                        <strong>@Model.PersonName</strong>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="bi bi-calendar text-primary fs-5 me-2"></i>
-                    <span class="text-muted">تاریخ:</span>
-                    <strong class="ms-2">@Model.PersianCreateDate</strong>
+            <div class="col-sm-4">
+                <div class="d-flex align-items-center p-2 rounded-2" style="background:#f8fafc;">
+                    <div class="stat-icon me-3" style="background:#fff7e6;color:#ff9f1c;">
+                        <i class="bi bi-calendar"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">تاریخ</small>
+                        <strong>@Model.PersianCreateDate</strong>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Factor Items -->
-<div class="card border-0 shadow-sm rounded-3 mb-3">
+<!-- Factor Items (Parent/Child with Collapse) -->
+<div class="card border-0 shadow-sm mb-3">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul"></i> آیتم‌های فاکتور</h6>
-        <span class="badge bg-info">@Model.TotalItems آیتم</span>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul text-primary"></i> آیتم‌های فاکتور</h6>
+        <span class="badge bg-light text-dark">@Model.TotalItems آیتم</span>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:50px">#</th>
-                        <th>نام کالا/بسته</th>
-                        <th>تعداد</th>
-                        <th>قیمت واحد (ریال)</th>
-                        <th>جمع (ریال)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        int row = 1;
-                        foreach (var item in Model.Items)
-                        {
-                            var isPack = item.PackId.HasValue && !item.ParentId.HasValue;
-                            var isSubItem = item.ParentId.HasValue;
-                            var rowClass = isPack ? "table-active fw-bold" : (isSubItem ? "table-light" : "");
-                            var indent = isSubItem ? "<i class=\"bi bi-arrow-return-left ms-2\"></i>" : "";
-                            var icon = isPack ? "<i class=\"bi bi-box-seam\"></i> " : "<i class=\"bi bi-box\"></i> ";
+    <div class="card-body" id="factorItemsContainer">
+        @{
+            int rowNum = 1;
+            var packGroups = Model.Items
+                .Where(i => i.PackId.HasValue && !i.ParentId.HasValue)
+                .ToList();
 
-                            <tr class="@rowClass">
-                                <td>@row</td>
-                                <td>@Html.Raw(indent)@Html.Raw(icon)@item.ProductName</td>
-                                <td>@item.Qty.ToString("N0")</td>
-                                <td>@item.Price.ToString("N0")</td>
-                                <td>@item.TotalPrice.ToString("N0")</td>
-                            </tr>
-                            row++;
+            var childItems = Model.Items
+                .Where(i => i.ParentId.HasValue)
+                .ToList();
+
+            var standaloneItems = Model.Items
+                .Where(i => !i.PackId.HasValue && !i.ParentId.HasValue)
+                .ToList();
+        }
+
+        @if (!Model.Items.Any())
+        {
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                <p class="mt-2 mb-0">آیتمی وجود ندارد</p>
+            </div>
+        }
+
+        @foreach (var pack in packGroups)
+        {
+            var packChildren = Model.Items.Where(i => i.ParentId == pack.PackId).ToList();
+            var packTotal = packChildren.Sum(c => c.Price * c.Qty);
+            var collapseId = $"pack-collapse-{pack.PackId}";
+
+            <div class="pack-item mb-2">
+                <div class="d-flex align-items-center justify-content-between pack-header px-3 py-2 rounded-2" style="background:#eef0ff;cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#@collapseId">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-primary me-2" style="min-width:28px">@rowNum</span>
+                        <i class="bi bi-box-seam text-primary me-2"></i>
+                        <strong>@pack.ProductName</strong>
+                        <span class="text-muted small ms-3">× @pack.Qty.ToString("N0")</span>
+                        <span class="badge bg-light text-dark ms-2">@packChildren.Count زیرآیتم</span>
+                        <i class="bi bi-chevron-down small text-muted ms-1"></i>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-success fw-bold">@packTotal.ToString("N0") ریال</span>
+                    </div>
+                </div>
+                <div class="collapse show" id="@collapseId">
+                    <div class="ps-4 pe-3 py-1">
+                        @foreach (var child in packChildren)
+                        {
+                            var childTotal = child.Price * child.Qty;
+                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color:#edf2f7 !important;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-arrow-return-left text-muted me-2"></i>
+                                    <i class="bi bi-box text-secondary me-2" style="font-size:0.85rem;"></i>
+                                    <span class="text-muted">@child.ProductName</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 small text-muted">
+                                    <span>@child.Qty.ToString("N0") عدد</span>
+                                    <span>@child.Price.ToString("N0") ریال</span>
+                                    <span class="text-dark fw-bold">@childTotal.ToString("N0") ریال</span>
+                                </div>
+                            </div>
                         }
-                    }
-                </tbody>
-                <tfoot class="table-light">
-                    <tr>
-                        <td colspan="4" class="text-start fw-bold fs-5">جمع کل:</td>
-                        <td class="fw-bold text-success fs-5">@Model.TotalAmount.ToString("N0") ریال</td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </div>
+                </div>
+            </div>
+            rowNum++;
+        }
+
+        @foreach (var item in standaloneItems)
+        {
+            var itemTotal = item.Price * item.Qty;
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 mb-1" style="background:#f8fafc;">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-dark me-2" style="min-width:28px">@rowNum</span>
+                    <i class="bi bi-box text-secondary me-2"></i>
+                    <span>@item.ProductName</span>
+                    <span class="text-muted small ms-3">× @item.Qty.ToString("N0")</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-muted small">@item.Price.ToString("N0") ریال/واحد</span>
+                    <span class="fw-bold">@itemTotal.ToString("N0") ریال</span>
+                </div>
+            </div>
+            rowNum++;
+        }
+    </div>
+    <div class="card-footer bg-white border-top">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold fs-5">جمع کل:</span>
+            <span class="fw-bold text-success fs-4">@Model.TotalAmount.ToString("N0") ریال</span>
         </div>
     </div>
 </div>

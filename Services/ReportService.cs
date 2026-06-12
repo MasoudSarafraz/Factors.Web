@@ -34,15 +34,15 @@ public class ReportService : IReportService
             TotalCategories = _context.ProductCategories.Count(),
             TotalPacks = _context.ProductPacks.Count(),
             TotalUsers = _context.Users.Count(),
-            TotalSalesAmount = factors.Sum(f => f.FactorItems.Sum(fi => fi.Price * fi.Qty)),
+            TotalSalesAmount = factors.Sum(f => (f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0)),
             RecentFactors = factors.Take(10).Select(f => new FactorViewModel
             {
                 Id = f.Id,
                 PersonId = f.PersonId,
                 PersonName = f.Person?.PersonName ?? "",
                 PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
-                TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
-                TotalItems = f.FactorItems.Count
+                TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+                TotalItems = f.FactorItems?.Count ?? 0
             }).ToList()
         };
 
@@ -76,7 +76,7 @@ public class ReportService : IReportService
             {
                 Month = $"{g.Key.Year}/{g.Key.Month:00}",
                 FactorCount = g.Count(),
-                TotalAmount = g.Sum(f => f.FactorItems.Sum(fi => fi.Price * fi.Qty))
+                TotalAmount = g.Sum(f => f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0)
             })
             .OrderBy(x => x.Month)
             .ToList();
@@ -88,6 +88,9 @@ public class ReportService : IReportService
 
     public byte[] GenerateFactorReportPdf(FactorViewModel factor)
     {
+        factor ??= new FactorViewModel();
+        factor.Items ??= new List<FactorItemViewModel>();
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -115,6 +118,13 @@ public class ReportService : IReportService
 
     public byte[] GenerateSalesReportPdf(ReportFilterViewModel filter, List<FactorViewModel> factors)
     {
+        filter ??= new ReportFilterViewModel();
+        factors ??= new List<FactorViewModel>();
+
+        var fromDateStr = filter.FromDate.HasValue ? PersianDateService.ToPersian(filter.FromDate.Value) : "نامحدود";
+        var toDateStr = filter.ToDate.HasValue ? PersianDateService.ToPersian(filter.ToDate.Value) : "نامحدود";
+        var totalAmount = factors.Sum(f => f.TotalAmount);
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -134,8 +144,8 @@ public class ReportService : IReportService
                         // Filter info
                         column.Item().Row(row =>
                         {
-                            row.RelativeItem().Text($"از تاریخ: {(filter.FromDate.HasValue ? PersianDateService.ToPersian(filter.FromDate.Value) : "نامحدود")}");
-                            row.RelativeItem().Text($"تا تاریخ: {(filter.ToDate.HasValue ? PersianDateService.ToPersian(filter.ToDate.Value) : "نامحدود")}");
+                            row.RelativeItem().Text($"از تاریخ: {fromDateStr}");
+                            row.RelativeItem().Text($"تا تاریخ: {toDateStr}");
                             row.RelativeItem().Text($"تعداد فاکتورها: {factors.Count}");
                         });
 
@@ -144,13 +154,20 @@ public class ReportService : IReportService
                         // Summary
                         column.Item().Row(row =>
                         {
-                            row.RelativeItem().Text($"مبلغ کل فروش: {factors.Sum(f => f.TotalAmount):N0} ریال");
+                            row.RelativeItem().Text($"مبلغ کل فروش: {totalAmount:N0} ریال");
                         });
 
                         column.Item().LineHorizontal(1);
 
-                        // Factors table
-                        column.Item().Element(compose2 => ComposeFactorsTable(compose2, factors));
+                        if (factors.Count > 0)
+                        {
+                            // Factors table
+                            column.Item().Element(compose2 => ComposeFactorsTable(compose2, factors));
+                        }
+                        else
+                        {
+                            column.Item().Text("داده‌ای برای نمایش وجود ندارد").FontSize(12).FontColor(Colors.Grey.Darken1);
+                        }
                     });
                 });
 
@@ -169,6 +186,8 @@ public class ReportService : IReportService
 
     public byte[] GenerateProductReportPdf(ReportFilterViewModel filter, List<ProductViewModel> products)
     {
+        products ??= new List<ProductViewModel>();
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -187,33 +206,40 @@ public class ReportService : IReportService
                         column.Item().Text($"تعداد محصولات: {products.Count}");
                         column.Item().LineHorizontal(1);
 
-                        column.Item().Table(table =>
+                        if (products.Count > 0)
                         {
-                            table.ColumnsDefinition(columns =>
+                            column.Item().Table(table =>
                             {
-                                columns.ConstantColumn(40);
-                                columns.RelativeColumn();
-                                columns.ConstantColumn(80);
-                                columns.RelativeColumn();
-                            });
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(40);
+                                    columns.RelativeColumn();
+                                    columns.ConstantColumn(80);
+                                    columns.RelativeColumn();
+                                });
 
-                            table.Header(header =>
-                            {
-                                header.Cell().Element(CellStyle).Text("#");
-                                header.Cell().Element(CellStyle).Text("نام محصول");
-                                header.Cell().Element(CellStyle).Text("کد");
-                                header.Cell().Element(CellStyle).Text("دسته‌بندی");
-                            });
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(CellStyle).Text("#");
+                                    header.Cell().Element(CellStyle).Text("نام محصول");
+                                    header.Cell().Element(CellStyle).Text("کد");
+                                    header.Cell().Element(CellStyle).Text("دسته‌بندی");
+                                });
 
-                            for (int i = 0; i < products.Count; i++)
-                            {
-                                var p = products[i];
-                                table.Cell().Element(CellStyle).Text((i + 1).ToString());
-                                table.Cell().Element(CellStyle).Text(p.Name);
-                                table.Cell().Element(CellStyle).Text(p.Code);
-                                table.Cell().Element(CellStyle).Text(p.CategoryName);
-                            }
-                        });
+                                for (int i = 0; i < products.Count; i++)
+                                {
+                                    var p = products[i];
+                                    table.Cell().Element(CellStyle).Text((i + 1).ToString());
+                                    table.Cell().Element(CellStyle).Text(p.Name ?? "");
+                                    table.Cell().Element(CellStyle).Text(p.Code ?? "");
+                                    table.Cell().Element(CellStyle).Text(p.CategoryName ?? "");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            column.Item().Text("داده‌ای برای نمایش وجود ندارد").FontSize(12).FontColor(Colors.Grey.Darken1);
+                        }
                     });
                 });
             });
@@ -228,7 +254,7 @@ public class ReportService : IReportService
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text(title).FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
+                column.Item().Text(title ?? "").FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
                 column.Item().Text($"تاریخ: {PersianDateService.Now}").FontSize(9);
                 column.Item().LineHorizontal(2);
             });
@@ -245,14 +271,21 @@ public class ReportService : IReportService
             column.Item().Row(row =>
             {
                 row.RelativeItem().Text($"شماره فاکتور: {factor.Id}");
-                row.RelativeItem().Text($"تاریخ: {factor.PersianCreateDate}");
-                row.RelativeItem().Text($"مشتری: {factor.PersonName}");
+                row.RelativeItem().Text($"تاریخ: {factor.PersianCreateDate ?? "-"}");
+                row.RelativeItem().Text($"مشتری: {factor.PersonName ?? "-"}");
             });
 
             column.Item().LineHorizontal(1);
 
             // Items table
-            column.Item().Element(compose => ComposeFactorItemsTable(compose, factor.Items));
+            if (factor.Items != null && factor.Items.Count > 0)
+            {
+                column.Item().Element(compose => ComposeFactorItemsTable(compose, factor.Items));
+            }
+            else
+            {
+                column.Item().Text("آیتمی وجود ندارد").FontSize(10).FontColor(Colors.Grey.Darken1);
+            }
 
             column.Item().LineHorizontal(1);
 
@@ -287,7 +320,7 @@ public class ReportService : IReportService
             {
                 var item = items[i];
                 table.Cell().Element(CellStyle).Text((i + 1).ToString());
-                table.Cell().Element(CellStyle).Text(item.ProductName);
+                table.Cell().Element(CellStyle).Text(item.ProductName ?? "");
                 table.Cell().Element(CellStyle).Text(item.Qty.ToString("N0"));
                 table.Cell().Element(CellStyle).Text(item.Price.ToString("N0"));
                 table.Cell().Element(CellStyle).Text(item.TotalPrice.ToString("N0"));
@@ -322,9 +355,9 @@ public class ReportService : IReportService
                 var f = factors[i];
                 table.Cell().Element(CellStyle).Text((i + 1).ToString());
                 table.Cell().Element(CellStyle).Text(f.Id.ToString());
-                table.Cell().Element(CellStyle).Text(f.PersonName);
+                table.Cell().Element(CellStyle).Text(f.PersonName ?? "");
                 table.Cell().Element(CellStyle).Text(f.TotalAmount.ToString("N0"));
-                table.Cell().Element(CellStyle).Text(f.PersianCreateDate);
+                table.Cell().Element(CellStyle).Text(f.PersianCreateDate ?? "");
             }
         });
     }

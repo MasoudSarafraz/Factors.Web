@@ -16,14 +16,14 @@
 <div class="row">
     <div class="col-lg-8">
         <!-- Factor Info -->
-        <div class="card border-0 shadow-sm rounded-3 mb-3">
+        <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0"><i class="bi bi-info-circle"></i> اطلاعات فاکتور</h6>
             </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">مشتری</label>
+                        <label class="form-label">مشتری</label>
                         <select id="personSelect" class="form-select" required>
                             <option value="">انتخاب مشتری...</option>
                             @foreach (var p in persons)
@@ -33,33 +33,37 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">تاریخ</label>
-                        <input type="text" class="form-control" value="@Factors.Web.Models.Entities.PersianDateService.Now" readonly />
+                        <label class="form-label">تاریخ</label>
+                        <input type="text" class="form-control bg-light" value="@Factors.Web.Models.Entities.PersianDateService.Now" readonly />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Add Product/Pack to Factor -->
-        <div class="card border-0 shadow-sm rounded-3 mb-3">
+        <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-info text-white">
                 <h6 class="mb-0"><i class="bi bi-plus-circle"></i> افزودن آیتم</h6>
             </div>
             <div class="card-body">
                 <ul class="nav nav-tabs mb-3" role="tablist">
                     <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#productTab" type="button">محصول</button>
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#productTab" type="button">
+                            <i class="bi bi-box"></i> محصول
+                        </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#packTab" type="button">بسته</button>
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#packTab" type="button">
+                            <i class="bi bi-box-seam"></i> بسته
+                        </button>
                     </li>
                 </ul>
                 <div class="tab-content">
-                    <!-- Product Tab -->
                     <div class="tab-pane fade show active" id="productTab">
-                        <div class="row g-2">
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-5">
-                                <select id="productSelect" class="form-select">
+                                <label class="form-label small">محصول</label>
+                                <select id="productSelect" class="form-select form-select-sm">
                                     <option value="">انتخاب محصول...</option>
                                     @foreach (var p in products)
                                     {
@@ -68,23 +72,25 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <input type="number" id="productQty" class="form-control" placeholder="تعداد" min="1" value="1" />
+                                <label class="form-label small">تعداد</label>
+                                <input type="number" id="productQty" class="form-control form-control-sm" min="1" value="1" />
                             </div>
                             <div class="col-md-3">
-                                <input type="number" id="productPrice" class="form-control" placeholder="قیمت واحد" min="0" />
+                                <label class="form-label small">قیمت واحد</label>
+                                <input type="number" id="productPrice" class="form-control form-control-sm" min="0" />
                             </div>
                             <div class="col-md-2">
-                                <button type="button" class="btn btn-success w-100" onclick="addProductItem()">
+                                <button type="button" class="btn btn-success btn-sm w-100" onclick="addProductItem()">
                                     <i class="bi bi-plus"></i> افزودن
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <!-- Pack Tab -->
                     <div class="tab-pane fade" id="packTab">
-                        <div class="row g-2">
+                        <div class="row g-2 align-items-end">
                             <div class="col-md-5">
-                                <select id="packSelect" class="form-select">
+                                <label class="form-label small">بسته</label>
+                                <select id="packSelect" class="form-select form-select-sm">
                                     <option value="">انتخاب بسته...</option>
                                     @foreach (var p in packs)
                                     {
@@ -93,10 +99,11 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <input type="number" id="packQty" class="form-control" placeholder="تعداد" min="1" value="1" />
+                                <label class="form-label small">تعداد</label>
+                                <input type="number" id="packQty" class="form-control form-control-sm" min="1" value="1" />
                             </div>
                             <div class="col-md-2">
-                                <button type="button" class="btn btn-success w-100" onclick="addPackItem()">
+                                <button type="button" class="btn btn-success btn-sm w-100" onclick="addPackItem()">
                                     <i class="bi bi-plus"></i> افزودن
                                 </button>
                             </div>
@@ -106,38 +113,23 @@
             </div>
         </div>
 
-        <!-- Factor Items Table -->
-        <div class="card border-0 shadow-sm rounded-3">
+        <!-- Factor Items List (Parent/Child with Collapse) -->
+        <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul"></i> آیتم‌های فاکتور</h6>
                 <span id="itemCount" class="badge bg-primary">0 آیتم</span>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="factorItemsTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th>نام کالا/بسته</th>
-                                <th>تعداد</th>
-                                <th>قیمت واحد</th>
-                                <th>جمع</th>
-                                <th style="width:60px">حذف</th>
-                            </tr>
-                        </thead>
-                        <tbody id="factorItemsBody">
-                            <tr id="emptyRow">
-                                <td colspan="6" class="text-center text-muted py-3">هنوز آیتمی اضافه نشده است</td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <td colspan="4" class="text-start fw-bold">جمع کل:</td>
-                                <td class="fw-bold text-success" id="totalAmount">0 ریال</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+            <div class="card-body" id="factorItemsContainer">
+                <div id="emptyState" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                    <p class="mt-2 mb-0">هنوز آیتمی اضافه نشده است</p>
+                </div>
+                <div id="factorItemsList"></div>
+            </div>
+            <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">جمع کل:</span>
+                    <span class="fw-bold text-success fs-5" id="totalAmount">0 ریال</span>
                 </div>
             </div>
         </div>
@@ -145,9 +137,9 @@
 
     <div class="col-lg-4">
         <!-- Quick Actions -->
-        <div class="card border-0 shadow-sm rounded-3 mb-3">
+        <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-success text-white">
-                <h6 class="mb-0"><i class="bi bi-lightning"></i> عملیات سریع</h6>
+                <h6 class="mb-0"><i class="bi bi-lightning"></i> عملیات</h6>
             </div>
             <div class="card-body">
                 <button type="button" class="btn btn-success w-100 mb-2 py-2 fw-bold" onclick="saveFactor()">
@@ -163,18 +155,14 @@
         </div>
 
         <!-- Factor Summary -->
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-warning text-dark">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
                 <h6 class="mb-0"><i class="bi bi-calculator"></i> خلاصه فاکتور</h6>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
-                    <span>تعداد آیتم‌ها:</span>
+                    <span class="text-muted">تعداد آیتم‌ها:</span>
                     <strong id="summaryItems">0</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>جمع کل:</span>
-                    <strong id="summaryTotal" class="text-success">0 ریال</strong>
                 </div>
                 <hr />
                 <div class="d-flex justify-content-between">
@@ -188,9 +176,9 @@
 
 @section Scripts {
 <script>
-    // Factor items stored in memory
     let factorItems = [];
     let packData = @Html.Raw(Json.Serialize(packs));
+    let packCounter = 0;
 
     // Auto-fill price when product selected
     $('#productSelect').change(function() {
@@ -215,6 +203,7 @@
         if (price < 0) { alert('قیمت نمی‌تواند منفی باشد'); return; }
 
         factorItems.push({
+            uid: 'item-' + Date.now(),
             salableId: parseInt(productId),
             packId: null,
             parentId: null,
@@ -225,7 +214,6 @@
         });
 
         renderItems();
-        // Reset
         $('#productSelect').val('');
         $('#productQty').val(1);
         $('#productPrice').val('');
@@ -239,28 +227,40 @@
         if (!packId) { alert('لطفاً بسته را انتخاب کنید'); return; }
         if (qty <= 0) { alert('تعداد باید بیشتر از 0 باشد'); return; }
 
-        // Find pack items
         var pack = packData.find(p => p.id == packId);
         if (!pack) return;
 
+        var packUid = 'pack-' + (++packCounter);
+
+        // Calculate pack total from sub-items
+        var packTotalPrice = 0;
+        if (pack.items && pack.items.length > 0) {
+            pack.items.forEach(function(item) {
+                packTotalPrice += item.price * item.qty * qty;
+            });
+        }
+
         // Add parent item (pack header)
         factorItems.push({
+            uid: packUid,
             salableId: null,
             packId: parseInt(packId),
             parentId: null,
             qty: qty,
-            price: 0, // Will be calculated from sub-items
+            price: packTotalPrice / qty, // effective unit price
             productName: packName,
-            isPack: true
+            isPack: true,
+            childCount: pack.items ? pack.items.length : 0
         });
 
         // Add sub-items
         if (pack.items && pack.items.length > 0) {
             pack.items.forEach(function(item) {
                 factorItems.push({
+                    uid: 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
                     salableId: item.productId,
                     packId: null,
-                    parentId: parseInt(packId),
+                    parentId: packUid,
                     qty: item.qty * qty,
                     price: item.price,
                     productName: item.productName,
@@ -270,79 +270,132 @@
         }
 
         renderItems();
-        // Reset
         $('#packSelect').val('');
         $('#packQty').val(1);
     }
 
-    function removeItem(index) {
-        var item = factorItems[index];
-        // If removing a pack parent, also remove its children
-        if (item.isPack && item.packId) {
-            factorItems = factorItems.filter(fi => fi.parentId !== item.packId);
+    function removeItem(uid) {
+        var item = factorItems.find(i => i.uid === uid);
+        if (!item) return;
+
+        // If removing a pack, also remove all its children
+        if (item.isPack && item.uid) {
+            factorItems = factorItems.filter(fi => fi.parentId !== item.uid);
         }
-        // If removing a pack child, also remove its parent if no more children
+        // If removing a child, check if parent has no more children
         if (item.parentId) {
-            var siblings = factorItems.filter(fi => fi.parentId === item.parentId && fi !== item);
+            factorItems = factorItems.filter(fi => fi.uid !== item.uid);
+            var siblings = factorItems.filter(fi => fi.parentId === item.parentId);
             if (siblings.length === 0) {
-                factorItems = factorItems.filter(fi => !(fi.isPack && fi.packId === item.parentId));
+                factorItems = factorItems.filter(fi => fi.uid !== item.parentId);
             }
+        } else {
+            factorItems = factorItems.filter(fi => fi.uid !== item.uid);
         }
-        factorItems.splice(factorItems.indexOf(item), 1);
+
         renderItems();
     }
 
     function renderItems() {
-        var tbody = $('#factorItemsBody');
-        tbody.empty();
+        var container = $('#factorItemsList');
+        container.empty();
 
         if (factorItems.length === 0) {
-            tbody.append('<tr id="emptyRow"><td colspan="6" class="text-center text-muted py-3">هنوز آیتمی اضافه نشده است</td></tr>');
-        } else {
-            var total = 0;
-            var rowNum = 1;
-            factorItems.forEach(function(item, index) {
-                var itemTotal = item.price * item.qty;
-                total += itemTotal;
-
-                var rowClass = item.isPack ? 'table-active fw-bold' : (item.parentId ? 'table-light' : '');
-                var indent = item.parentId ? '<i class="bi bi-arrow-return-left ms-2"></i>' : '';
-                var icon = item.isPack ? '<i class="bi bi-box-seam"></i> ' : '<i class="bi bi-box"></i> ';
-
-                tbody.append(
-                    '<tr class="' + rowClass + '">' +
-                    '<td>' + rowNum + '</td>' +
-                    '<td>' + indent + icon + item.productName + '</td>' +
-                    '<td>' + item.qty.toLocaleString() + '</td>' +
-                    '<td>' + item.price.toLocaleString() + '</td>' +
-                    '<td>' + itemTotal.toLocaleString() + '</td>' +
-                    '<td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(' + index + ')"><i class="bi bi-trash"></i></button></td>' +
-                    '</tr>'
-                );
-                rowNum++;
-            });
-
-            $('#totalAmount').text(total.toLocaleString() + ' ریال');
-            $('#summaryTotal').text(total.toLocaleString() + ' ریال');
-            $('#summaryFinal').text(total.toLocaleString() + ' ریال');
+            $('#emptyState').show();
+            $('#totalAmount').text('0 ریال');
+            $('#summaryItems').text('0');
+            $('#summaryFinal').text('0 ریال');
+            $('#itemCount').text('0 آیتم');
+            return;
         }
 
-        var itemCount = factorItems.filter(i => !i.parentId).length;
-        $('#itemCount').text(factorItems.length + ' آیتم');
-        $('#summaryItems').text(factorItems.length);
+        $('#emptyState').hide();
+
+        var total = 0;
+        var itemNum = 1;
+
+        factorItems.forEach(function(item) {
+            var itemTotal = item.isPack ? (item.price * item.qty) : (item.price * item.qty);
+            total += itemTotal;
+
+            if (item.isPack) {
+                // Pack parent - collapsible card
+                var childItems = factorItems.filter(fi => fi.parentId === item.uid);
+                var collapseId = 'collapse-' + item.uid;
+
+                var html = '<div class="pack-item mb-2">';
+                html += '<div class="d-flex align-items-center justify-content-between pack-header px-3 py-2 rounded-2" style="background:#eef0ff;cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '">';
+                html += '<div class="d-flex align-items-center">';
+                html += '<span class="badge bg-primary me-2" style="min-width:28px">' + itemNum + '</span>';
+                html += '<i class="bi bi-box-seam text-primary me-2"></i>';
+                html += '<strong>' + item.productName + '</strong>';
+                html += '<span class="text-muted small me-3"> × ' + item.qty.toLocaleString() + '</span>';
+                html += '<i class="bi bi-chevron-down small text-muted collapse-icon-' + item.uid + '"></i>';
+                html += '</div>';
+                html += '<div class="d-flex align-items-center">';
+                html += '<span class="text-success fw-bold me-3">' + itemTotal.toLocaleString() + ' ریال</span>';
+                html += '<button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation();removeItem(\'' + item.uid + '\')"><i class="bi bi-trash"></i></button>';
+                html += '</div>';
+                html += '</div>';
+
+                // Child items (collapsible)
+                html += '<div class="collapse show" id="' + collapseId + '">';
+                html += '<div class="ps-4 pe-3 py-1">';
+                childItems.forEach(function(child) {
+                    var childTotal = child.price * child.qty;
+                    html += '<div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color:#edf2f7 !important;">';
+                    html += '<div class="d-flex align-items-center">';
+                    html += '<i class="bi bi-arrow-return-left text-muted me-2"></i>';
+                    html += '<i class="bi bi-box text-secondary me-2" style="font-size:0.85rem;"></i>';
+                    html += '<span class="text-muted">' + child.productName + '</span>';
+                    html += '</div>';
+                    html += '<div class="d-flex align-items-center gap-3 small text-muted">';
+                    html += '<span>' + child.qty.toLocaleString() + ' عدد</span>';
+                    html += '<span>' + child.price.toLocaleString() + ' ریال</span>';
+                    html += '<span class="text-dark">' + childTotal.toLocaleString() + ' ریال</span>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+                html += '</div>';
+
+                container.append(html);
+                itemNum++;
+
+            } else if (!item.parentId) {
+                // Regular product (no parent)
+                var html = '<div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-2 mb-1" style="background:#f8fafc;">';
+                html += '<div class="d-flex align-items-center">';
+                html += '<span class="badge bg-light text-dark me-2" style="min-width:28px">' + itemNum + '</span>';
+                html += '<i class="bi bi-box text-secondary me-2"></i>';
+                html += '<span>' + item.productName + '</span>';
+                html += '<span class="text-muted small me-3"> × ' + item.qty.toLocaleString() + '</span>';
+                html += '</div>';
+                html += '<div class="d-flex align-items-center">';
+                html += '<span class="fw-bold me-3">' + itemTotal.toLocaleString() + ' ریال</span>';
+                html += '<span class="text-muted small me-3">' + item.price.toLocaleString() + ' ریال/واحد</span>';
+                html += '<button class="btn btn-sm btn-outline-danger border-0" onclick="removeItem(\'' + item.uid + '\')"><i class="bi bi-trash"></i></button>';
+                html += '</div>';
+                html += '</div>';
+
+                container.append(html);
+                itemNum++;
+            }
+            // child items are rendered inside their parent pack
+        });
+
+        var mainItems = factorItems.filter(i => !i.parentId);
+        $('#itemCount').text(mainItems.length + ' آیتم');
+        $('#summaryItems').text(factorItems.length.toString());
+        $('#totalAmount').text(total.toLocaleString() + ' ریال');
+        $('#summaryTotal').text(total.toLocaleString() + ' ریال');
+        $('#summaryFinal').text(total.toLocaleString() + ' ریال');
     }
 
     function saveFactor() {
         var personId = parseInt($('#personSelect').val());
-        if (!personId) {
-            alert('لطفاً مشتری را انتخاب کنید');
-            return;
-        }
-
-        if (factorItems.length === 0) {
-            alert('فاکتور باید حداقل یک آیتم داشته باشد');
-            return;
-        }
+        if (!personId) { alert('لطفاً مشتری را انتخاب کنید'); return; }
+        if (factorItems.length === 0) { alert('فاکتور باید حداقل یک آیتم داشته باشد'); return; }
 
         var data = {
             personId: personId,
@@ -350,13 +403,21 @@
                 return {
                     salableId: item.salableId,
                     packId: item.packId,
-                    parentId: item.parentId,
+                    parentId: item.parentId ? item.parentId.replace('pack-', '') : null,
                     qty: item.qty,
                     price: item.price,
                     productName: item.productName
                 };
             })
         };
+
+        // Fix parentId: convert back to packId int
+        data.items.forEach(function(item) {
+            if (item.parentId) {
+                var parentPack = factorItems.find(fi => fi.uid === item.parentId);
+                item.parentId = parentPack ? parentPack.packId : null;
+            }
+        });
 
         $.ajax({
             url: '/Factor/CreateFactor',
@@ -368,7 +429,6 @@
             },
             success: function(result) {
                 if (result.success) {
-                    alert(result.message);
                     window.location.href = '/Factor/Details/' + result.factorId;
                 } else {
                     alert('خطا: ' + result.message);
@@ -383,6 +443,7 @@
     function clearAll() {
         if (confirm('آیا از پاک کردن تمام آیتم‌ها مطمئن هستید؟')) {
             factorItems = [];
+            packCounter = 0;
             renderItems();
             $('#personSelect').val('');
         }

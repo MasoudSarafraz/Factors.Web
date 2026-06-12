@@ -25,18 +25,23 @@
 <!-- Packs -->
 @foreach (var pack in Model.Packs)
 {
-    <div class="card border-0 shadow-sm rounded-3 mb-3">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <div>
-                <h6 class="mb-0 fw-bold">@pack.PackName</h6>
-                <small class="text-muted">کد: @pack.PackCode | تاریخ: @pack.PersianCreateDate</small>
+    var collapseId = $"pack-items-{pack.Id}";
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#@collapseId">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-box-seam text-primary me-2"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold d-inline">@pack.PackName</h6>
+                    <small class="text-muted ms-2">کد: @pack.PackCode</small>
+                    <span class="badge bg-light text-dark ms-2">@pack.Items.Count() آیتم</span>
+                </div>
             </div>
-            <div>
-                <span class="badge bg-success fs-6">@pack.TotalPrice.ToString("N0") ریال</span>
-                <button class="btn btn-sm btn-outline-info ms-1" onclick="addItem(@pack.Id, '@pack.PackName')" title="افزودن آیتم">
-                    <i class="bi bi-plus"></i> آیتم
+            <div class="d-flex align-items-center" onclick="event.stopPropagation();">
+                <span class="badge bg-success fs-6 me-2">@pack.TotalPrice.ToString("N0") ریال</span>
+                <button class="btn btn-sm btn-outline-info me-1" onclick="addItem(@pack.Id, '@pack.PackName')" title="افزودن آیتم">
+                    <i class="bi bi-plus"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-warning" onclick="editPack(@pack.Id)" title="ویرایش">
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="editPack(@pack.Id)" title="ویرایش">
                     <i class="bi bi-pencil"></i>
                 </button>
                 @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
@@ -45,46 +50,40 @@
                         <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
                     </form>
                 }
+                <i class="bi bi-chevron-down text-muted me-1"></i>
             </div>
         </div>
-        <div class="card-body p-0">
-            <table class="table table-sm mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>محصول</th>
-                        <th>تعداد</th>
-                        <th>قیمت واحد</th>
-                        <th>جمع</th>
-                        <th style="width:60px">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (pack.Items.Any())
-                    {
-                        foreach (var item in pack.Items)
+        <div class="collapse show" id="@collapseId">
+            <div class="card-body p-0">
+                @if (pack.Items.Any())
+                {
+                    <div class="px-3 py-2">
+                        @foreach (var item in pack.Items)
                         {
-                            <tr>
-                                <td>@item.ProductName</td>
-                                <td>@item.Qty</td>
-                                <td>@item.Price.ToString("N0") ریال</td>
-                                <td>@item.TotalPrice.ToString("N0") ریال</td>
-                                <td>
+                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="border-color:#edf2f7 !important;">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-box text-secondary me-2" style="font-size:0.85rem;"></i>
+                                    <span>@item.ProductName</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">@item.Qty × @item.Price.ToString("N0")</span>
+                                    <span class="fw-bold small">@item.TotalPrice.ToString("N0") ریال</span>
                                     @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                                     {
                                         <form asp-action="DeleteItem" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این آیتم مطمئن هستید؟')">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0 py-0" title="حذف"><i class="bi bi-x"></i></button>
                                         </form>
                                     }
-                                </td>
-                            </tr>
+                                </div>
+                            </div>
                         }
-                    }
-                    else
-                    {
-                        <tr><td colspan="5" class="text-center text-muted py-2">آیتمی تعریف نشده</td></tr>
-                    }
-                </tbody>
-            </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">آیتمی تعریف نشده</div>
+                }
+            </div>
         </div>
     </div>
 }
@@ -108,11 +107,11 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام بسته</label>
+                        <label class="form-label">نام بسته</label>
                         <input type="text" name="PackName" class="form-control" required maxlength="100" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">کد بسته</label>
+                        <label class="form-label">کد بسته</label>
                         <input type="text" name="PackCode" class="form-control" required maxlength="50" />
                     </div>
                 </div>
@@ -137,11 +136,11 @@
                 <div class="modal-body">
                     <input type="hidden" name="Id" id="editId" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نام بسته</label>
+                        <label class="form-label">نام بسته</label>
                         <input type="text" name="PackName" id="editPackName" class="form-control" required maxlength="100" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">کد بسته</label>
+                        <label class="form-label">کد بسته</label>
                         <input type="text" name="PackCode" id="editPackCode" class="form-control" required maxlength="50" />
                     </div>
                 </div>
@@ -160,23 +159,23 @@
         <div class="modal-content">
             <form asp-action="AddItem" method="post">
                 <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-plus"></i> افزودن آیتم به بسته - <span id="itemPackName"></span></h5>
+                    <h5 class="modal-title"><i class="bi bi-plus"></i> افزودن آیتم - <span id="itemPackName"></span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="PackId" id="itemPackId" />
                     <div class="mb-3">
-                        <label class="form-label fw-bold">محصول</label>
+                        <label class="form-label">محصول</label>
                         <select name="ProductId" id="itemProductId" class="form-select" required>
                             <option value="">انتخاب کنید</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تعداد</label>
+                        <label class="form-label">تعداد</label>
                         <input type="number" name="Qty" class="form-control" required min="1" value="1" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">قیمت (ریال)</label>
+                        <label class="form-label">قیمت (ریال)</label>
                         <input type="number" name="Price" class="form-control" required min="0" />
                     </div>
                 </div>
@@ -203,7 +202,6 @@
     function addItem(packId, packName) {
         $('#itemPackId').val(packId);
         $('#itemPackName').text(packName);
-        // Load products
         $.get('/Product/Search?term=', function(data) {
             var select = $('#itemProductId');
             select.empty().append('<option value="">انتخاب کنید</option>');

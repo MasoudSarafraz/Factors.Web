@@ -149,6 +149,25 @@ body.sidebar-collapsed .sidebar-overlay {
     padding: 1.25rem;
 }
 
+/* ---- Pack Items (Parent/Child) ---- */
+.pack-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.pack-header {
+    transition: background 0.15s;
+}
+
+.pack-header:hover {
+    background: #dce2ff !important;
+}
+
+.pack-item .collapse.show {
+    border-top: 1px solid #edf2f7;
+}
+
 /* ---- Stats Cards ---- */
 .stat-card {
     border-radius: 0.75rem;
