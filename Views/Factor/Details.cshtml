@@ -1,14 +1,46 @@
 @model Factors.Web.Models.ViewModels.FactorViewModel
+@using Factors.Web.Models.ViewModels
 @{
     ViewData["Title"] = $"فاکتور شماره {Model.Id}";
+    var printTemplates = ViewBag.PrintTemplates as List<PrintTemplateOption> ?? new List<PrintTemplateOption>();
+    var hasMultipleTemplates = printTemplates.Count > 1;
 }
 
 <div class="page-header">
     <h4><i class="bi bi-receipt-cutoff"></i> فاکتور شماره @Model.Id</h4>
     <div class="d-flex gap-2">
-        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
-            <i class="bi bi-printer"></i> چاپ PDF
-        </a>
+        @if (hasMultipleTemplates)
+        {
+            <div class="dropdown">
+                <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-printer"></i> چاپ فاکتور
+                </button>
+                <ul class="dropdown-menu">
+                    @foreach (var t in printTemplates)
+                    {
+                        <li>
+                            <a class="dropdown-item" href="@Url.Action("Print", "Factor", new { id = Model.Id, templateId = t.Id })" target="_blank">
+                                @if (t.Id == 0)
+                                {
+                                    <i class="bi bi-file-pdf text-danger"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-file-earmark-word text-primary"></i>
+                                }
+                                @t.Name
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
+                <i class="bi bi-printer"></i> چاپ PDF
+            </a>
+        }
         <a asp-controller="ReportBuilder" asp-action="Index" class="btn btn-info btn-sm" target="_blank">
             <i class="bi bi-magic"></i> گزارش Word
         </a>
@@ -175,9 +207,38 @@
 
 <!-- Actions -->
 <div class="d-flex gap-2">
-    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
-        <i class="bi bi-printer"></i> چاپ PDF
-    </a>
+    @if (hasMultipleTemplates)
+    {
+        <div class="dropdown">
+            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-printer"></i> چاپ فاکتور
+            </button>
+            <ul class="dropdown-menu">
+                @foreach (var t in printTemplates)
+                {
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("Print", "Factor", new { id = Model.Id, templateId = t.Id })" target="_blank">
+                            @if (t.Id == 0)
+                            {
+                                <i class="bi bi-file-pdf text-danger"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-file-earmark-word text-primary"></i>
+                            }
+                            @t.Name
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success btn-sm" target="_blank">
+            <i class="bi bi-printer"></i> چاپ PDF
+        </a>
+    }
     @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
     {
         <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('آیا از حذف این فاکتور مطمئن هستید؟')">

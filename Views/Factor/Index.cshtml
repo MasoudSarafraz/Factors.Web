@@ -1,6 +1,9 @@
 @model Factors.Web.Models.ViewModels.FactorListViewModel
+@using Factors.Web.Models.ViewModels
 @{
     ViewData["Title"] = "فاکتورها";
+    var printTemplates = ViewBag.PrintTemplates as List<PrintTemplateOption> ?? new List<PrintTemplateOption>();
+    var hasMultipleTemplates = printTemplates.Count > 1;
 }
 
 <div class="page-header">
@@ -69,9 +72,38 @@
                                     <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="مشاهده و گزارش">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a asp-action="Print" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success" title="چاپ PDF" target="_blank">
-                                        <i class="bi bi-printer"></i>
-                                    </a>
+                                    @if (hasMultipleTemplates)
+                                    {
+                                        <div class="dropdown d-inline-block">
+                                            <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="چاپ فاکتور">
+                                                <i class="bi bi-printer"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                @foreach (var t in printTemplates)
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item" href="@Url.Action("Print", "Factor", new { id = item.Id, templateId = t.Id })" target="_blank">
+                                                            @if (t.Id == 0)
+                                                            {
+                                                                <i class="bi bi-file-pdf text-danger"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-file-earmark-word text-primary"></i>
+                                                            }
+                                                            @t.Name
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <a asp-action="Print" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success" title="چاپ PDF" target="_blank">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                    }
                                     @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                                     {
                                         <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این فاکتور مطمئن هستید؟')">

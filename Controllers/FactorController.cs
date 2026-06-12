@@ -72,6 +72,9 @@ public class FactorController : Controller
             ToDateJalali = toDateJalali ?? ""
         };
 
+        // Load print templates for the dropdown
+        ViewBag.PrintTemplates = await SettingsController.GetPrintTemplatesAsync(_context);
+
         return View(model);
     }
 
@@ -226,11 +229,14 @@ public class FactorController : Controller
             }).ToList()
         };
 
+        // Load print templates for the dropdown
+        ViewBag.PrintTemplates = await SettingsController.GetPrintTemplatesAsync(_context);
+
         return View(model);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Print(int id)
+    public async Task<IActionResult> Print(int id, int? templateId)
     {
         var factor = await _context.Factors
             .Include(f => f.Person)
@@ -289,23 +295,40 @@ public class FactorController : Controller
             }).ToList()
         };
 
-        // Check if a default template is configured in settings
-        var defaultTemplateId = await SettingsController.GetSettingIntAsync(_context, "DefaultFactorPrintTemplateId");
-        if (defaultTemplateId.HasValue)
+        // Determine which template to use
+        int? effectiveTemplateId = templateId;
+
+        // If no specific template requested, use the first configured template (or old default)
+        if (!effectiveTemplateId.HasValue)
+        {
+            var configuredIds = await SettingsController.GetSettingIntListAsync(_context, "FactorPrintTemplateIds");
+            if (configuredIds.Any())
+            {
+                effectiveTemplateId = configuredIds.First();
+            }
+            else
+            {
+                // Fallback to old key
+                effectiveTemplateId = await SettingsController.GetSettingIntAsync(_context, "DefaultFactorPrintTemplateId");
+            }
+        }
+
+        // If a template is selected (and it's not the PDF option which is Id=0)
+        if (effectiveTemplateId.HasValue && effectiveTemplateId.Value > 0)
         {
             try
             {
-                var template = await _context.ReportTemplates.FindAsync(defaultTemplateId.Value);
+                var template = await _context.ReportTemplates.FindAsync(effectiveTemplateId.Value);
                 if (template != null)
                 {
                     // Generate Word report from template
-                    var docBytes = await _reportTemplateService.GenerateReportAsync(defaultTemplateId.Value, id);
+                    var docBytes = await _reportTemplateService.GenerateReportAsync(effectiveTemplateId.Value, id);
                     return File(docBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"Factor-{id}.docx");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to generate report from template {TemplateId}, falling back to default PDF", defaultTemplateId.Value);
+                _logger.LogWarning(ex, "Failed to generate report from template {TemplateId}, falling back to default PDF", effectiveTemplateId.Value);
             }
         }
 
