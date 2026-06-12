@@ -20,8 +20,11 @@ public class FactorController : Controller
         _reportService = reportService;
     }
 
-    public async Task<IActionResult> Index(string? search, DateTime? fromDate, DateTime? toDate)
+    public async Task<IActionResult> Index(string? search, string? fromDateJalali, string? toDateJalali)
     {
+        DateTime? fromDate = PersianDateService.ParsePersianDate(fromDateJalali);
+        DateTime? toDate = PersianDateService.ParsePersianDate(toDateJalali);
+
         var query = _context.Factors
             .Include(f => f.Person)
             .Include(f => f.FactorItems)
@@ -52,16 +55,16 @@ public class FactorController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
-            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
-            TotalItems = f.FactorItems.Count
+            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 
         var model = new FactorListViewModel
         {
             Factors = factors,
             SearchTerm = search ?? "",
-            FromDate = fromDate,
-            ToDate = toDate
+            FromDateJalali = fromDateJalali ?? "",
+            ToDateJalali = toDateJalali ?? ""
         };
 
         return View(model);

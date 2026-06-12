@@ -3,8 +3,8 @@
     ViewData["Title"] = $"فاکتور شماره {Model.Id}";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0"><i class="bi bi-receipt-cutoff"></i> فاکتور شماره @Model.Id</h4>
+<div class="page-header">
+    <h4><i class="bi bi-receipt-cutoff"></i> فاکتور شماره @Model.Id</h4>
     <div>
         <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-success" target="_blank">
             <i class="bi bi-printer"></i> چاپ PDF

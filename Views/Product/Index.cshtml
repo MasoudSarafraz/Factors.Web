@@ -3,8 +3,8 @@
     ViewData["Title"] = "محصولات";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0"><i class="bi bi-box"></i> محصولات</h4>
+<div class="page-header">
+    <h4><i class="bi bi-box"></i> محصولات</h4>
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
         <i class="bi bi-plus-lg"></i> محصول جدید
     </button>
@@ -190,12 +190,12 @@
                         <input type="number" name="Price" class="form-control" required min="0" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تاریخ شروع</label>
-                        <input type="text" name="StartTime" class="form-control persian-datepicker" placeholder="1403/01/01" required />
+                        <label class="form-label fw-bold">تاریخ شروع (شمسی)</label>
+                        <input type="text" name="StartTime" class="form-control persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" required />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تاریخ پایان</label>
-                        <input type="text" name="EndTime" class="form-control persian-datepicker" placeholder="1403/06/31" required />
+                        <label class="form-label fw-bold">تاریخ پایان (شمسی)</label>
+                        <input type="text" name="EndTime" class="form-control persian-datepicker" placeholder="مثال: 1403/06/31" autocomplete="off" required />
                     </div>
                 </div>
                 <div class="modal-footer">

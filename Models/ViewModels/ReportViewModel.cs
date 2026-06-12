@@ -5,6 +5,8 @@ public class ReportFilterViewModel
     public string ReportType { get; set; } = "factors";
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+    public string FromDateJalali { get; set; } = string.Empty;
+    public string ToDateJalali { get; set; } = string.Empty;
     public int? PersonId { get; set; }
     public int? CategoryId { get; set; }
     public int? ProductId { get; set; }

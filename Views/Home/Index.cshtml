@@ -3,118 +3,124 @@
     ViewData["Title"] = "داشبورد";
 }
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="fw-bold"><i class="bi bi-speedometer2"></i> داشبورد</h4>
-        <hr />
-    </div>
+<div class="page-header">
+    <h4><i class="bi bi-speedometer2"></i> داشبورد</h4>
 </div>
 
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm bg-primary text-white rounded-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-0">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h6 class="text-white-50">تعداد فاکتورها</h6>
-                                        <h3 class="fw-bold mb-0">@Model.TotalFactors</h3>
+                        <div class="stat-label">تعداد فاکتورها</div>
+                        <div class="stat-value text-primary">@Model.TotalFactors</div>
                     </div>
-                    <i class="bi bi-receipt-cutoff" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    <div class="stat-icon" style="background:#eef0ff;color:#4361ee;">
+                        <i class="bi bi-receipt-cutoff"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm bg-success text-white rounded-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-0">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h6 class="text-white-50">فروش کل (ریال)</h6>
-                                        <h3 class="fw-bold mb-0">@Model.TotalSalesAmount.ToString("N0")</h3>
+                        <div class="stat-label">فروش کل (ریال)</div>
+                        <div class="stat-value text-success">@Model.TotalSalesAmount.ToString("N0")</div>
                     </div>
-                    <i class="bi bi-currency-exchange" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    <div class="stat-icon" style="background:#e6faf7;color:#2ec4b6;">
+                        <i class="bi bi-currency-exchange"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm bg-info text-white rounded-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-0">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h6 class="text-white-50">تعداد محصولات</h6>
-                                        <h3 class="fw-bold mb-0">@Model.TotalProducts</h3>
+                        <div class="stat-label">تعداد محصولات</div>
+                        <div class="stat-value text-info">@Model.TotalProducts</div>
                     </div>
-                    <i class="bi bi-box" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    <div class="stat-icon" style="background:#e8f0fe;color:#3a86ff;">
+                        <i class="bi bi-box"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm bg-warning text-dark rounded-3">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card border-0">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h6 class="text-dark-50">تعداد مشتریان</h6>
-                                        <h3 class="fw-bold mb-0">@Model.TotalPersons</h3>
+                        <div class="stat-label">تعداد مشتریان</div>
+                        <div class="stat-value text-warning">@Model.TotalPersons</div>
                     </div>
-                    <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    <div class="stat-icon" style="background:#fff7e6;color:#ff9f1c;">
+                        <i class="bi bi-people"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Secondary Stats -->
 <div class="row g-3 mb-4">
     <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-body text-center">
-                <i class="bi bi-folder text-primary" style="font-size: 2rem;"></i>
-                <h6 class="mt-2 text-muted">دسته‌بندی‌ها</h6>
-                <h4 class="fw-bold">@Model.TotalCategories</h4>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-3">
+                <i class="bi bi-folder text-primary" style="font-size: 1.5rem;"></i>
+                <div class="mt-1"><small class="text-muted">دسته‌بندی‌ها</small></div>
+                <strong class="fs-5">@Model.TotalCategories</strong>
             </div>
         </div>
     </div>
     <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-body text-center">
-                <i class="bi bi-box-seam text-success" style="font-size: 2rem;"></i>
-                <h6 class="mt-2 text-muted">بسته‌ها</h6>
-                <h4 class="fw-bold">@Model.TotalPacks</h4>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-3">
+                <i class="bi bi-box-seam text-success" style="font-size: 1.5rem;"></i>
+                <div class="mt-1"><small class="text-muted">بسته‌ها</small></div>
+                <strong class="fs-5">@Model.TotalPacks</strong>
             </div>
         </div>
     </div>
     <div class="col-md-3 col-sm-6">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-body text-center">
-                <i class="bi bi-person-gear text-info" style="font-size: 2rem;"></i>
-                <h6 class="mt-2 text-muted">کاربران</h6>
-                <h4 class="fw-bold">@Model.TotalUsers</h4>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-3">
+                <i class="bi bi-person-gear text-info" style="font-size: 1.5rem;"></i>
+                <div class="mt-1"><small class="text-muted">کاربران</small></div>
+                <strong class="fs-5">@Model.TotalUsers</strong>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Factors -->
+<!-- Recent Factors + Top Products -->
 <div class="row g-3">
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history"></i> آخرین فاکتورها</h6>
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-primary"></i> آخرین فاکتورها</h6>
                 <a asp-controller="Factor" asp-action="Index" class="btn btn-sm btn-outline-primary">مشاهده همه</a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                        <thead>
                             <tr>
                                 <th>شماره</th>
                                 <th>مشتری</th>
                                 <th>تاریخ</th>
-                                <th>تعداد آیتم</th>
+                                <th>آیتم</th>
                                 <th>مبلغ کل</th>
-                                <th>عملیات</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -123,11 +129,11 @@
                                 foreach (var factor in Model.RecentFactors)
                                 {
                                     <tr>
-                                        <td>@factor.Id</td>
+                                        <td><strong>@factor.Id</strong></td>
                                         <td>@factor.PersonName</td>
-                                        <td>@factor.PersianCreateDate</td>
-                                        <td>@factor.TotalItems</td>
-                                        <td>@factor.TotalAmount.ToString("N0") ریال</td>
+                                        <td><small class="text-muted">@factor.PersianCreateDate</small></td>
+                                        <td><span class="badge bg-light text-dark">@factor.TotalItems</span></td>
+                                        <td><span class="text-success fw-bold">@factor.TotalAmount.ToString("N0")</span></td>
                                         <td>
                                             <a asp-controller="Factor" asp-action="Details" asp-route-id="@factor.Id" class="btn btn-sm btn-outline-info">
                                                 <i class="bi bi-eye"></i>
@@ -148,24 +154,31 @@
     </div>
 
     <!-- Top Products -->
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-white border-bottom">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy"></i> پرفروش‌ترین محصولات</h6>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-trophy text-warning"></i> پرفروش‌ترین محصولات</h6>
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush">
                     @if (Model.TopProducts.Any())
                     {
+                        var rank = 1;
                         foreach (var product in Model.TopProducts)
                         {
+                            var rankColors = new[] { "warning", "secondary", "danger" };
+                            var rankColor = rank <= 3 ? rankColors[rank - 1] : "light";
                             <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0">@product.ProductName</h6>
-                                    <small class="text-muted">تعداد: @product.TotalQty</small>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-@rankColor me-2 rounded-pill" style="min-width:28px">@rank</span>
+                                    <div>
+                                        <div class="fw-bold small">@product.ProductName</div>
+                                        <small class="text-muted">تعداد: @product.TotalQty</small>
+                                    </div>
                                 </div>
                                 <span class="badge bg-primary rounded-pill">@product.TotalAmount.ToString("N0")</span>
                             </div>
+                            rank++;
                         }
                     }
                     else

@@ -3,8 +3,8 @@
     ViewData["Title"] = "فاکتورها";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0"><i class="bi bi-receipt-cutoff"></i> فاکتورها</h4>
+<div class="page-header">
+    <h4><i class="bi bi-receipt-cutoff"></i> فاکتورها</h4>
     <a asp-action="Create" class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> فاکتور جدید
     </a>
@@ -14,13 +14,13 @@
 <form asp-action="Index" method="get" class="mb-3">
     <div class="row g-2">
         <div class="col-md-3">
-            <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو..." />
+            <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="جستجو نام مشتری یا شماره..." />
         </div>
         <div class="col-md-3">
-            <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" placeholder="از تاریخ" />
+            <input type="text" name="fromDateJalali" value="@Model.FromDateJalali" class="form-control persian-datepicker" placeholder="از تاریخ شمسی" autocomplete="off" />
         </div>
         <div class="col-md-3">
-            <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" placeholder="تا تاریخ" />
+            <input type="text" name="toDateJalali" value="@Model.ToDateJalali" class="form-control persian-datepicker" placeholder="تا تاریخ شمسی" autocomplete="off" />
         </div>
         <div class="col-md-3">
             <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-search"></i> جستجو</button>
@@ -29,11 +29,11 @@
 </form>
 
 <!-- Factors Table -->
-<div class="card border-0 shadow-sm rounded-3">
+<div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th style="width:60px">شماره</th>
                         <th>مشتری</th>
@@ -53,7 +53,7 @@
                                 <td>@item.PersonName</td>
                                 <td><span class="badge bg-info">@item.TotalItems</span></td>
                                 <td><span class="text-success fw-bold">@item.TotalAmount.ToString("N0")</span></td>
-                                <td>@item.PersianCreateDate</td>
+                                <td><small class="text-muted">@item.PersianCreateDate</small></td>
                                 <td>
                                     <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="مشاهده">
                                         <i class="bi bi-eye"></i>

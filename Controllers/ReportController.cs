@@ -32,16 +32,32 @@ public class ReportController : Controller
     [HttpPost]
     public async Task<IActionResult> Generate(ReportFilterViewModel model)
     {
-        switch (model.ReportType)
+        // Parse Jalali dates to Gregorian
+        if (!string.IsNullOrWhiteSpace(model.FromDateJalali))
+            model.FromDate = PersianDateService.ParsePersianDate(model.FromDateJalali);
+
+        if (!string.IsNullOrWhiteSpace(model.ToDateJalali))
+            model.ToDate = PersianDateService.ParsePersianDate(model.ToDateJalali);
+
+        try
         {
-            case "factors":
-                return await GenerateFactorReport(model);
-            case "products":
-                return await GenerateProductReport(model);
-            case "sales":
-                return await GenerateSalesReport(model);
-            default:
-                return BadRequest("نوع گزارش نامعتبر است");
+            switch (model.ReportType)
+            {
+                case "factors":
+                    return await GenerateFactorReport(model);
+                case "products":
+                    return await GenerateProductReport(model);
+                case "sales":
+                    return await GenerateSalesReport(model);
+                default:
+                    TempData["Error"] = "نوع گزارش نامعتبر است";
+                    return RedirectToAction("Index");
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"خطا در تولید گزارش: {ex.Message}";
+            return RedirectToAction("Index");
         }
     }
 
@@ -69,8 +85,8 @@ public class ReportController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
-            TotalItems = f.FactorItems.Count
+            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 
         var pdfBytes = _reportService.GenerateSalesReportPdf(model, factorViewModels);
@@ -128,8 +144,8 @@ public class ReportController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems.Sum(fi => fi.Price * fi.Qty),
-            TotalItems = f.FactorItems.Count
+            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 
         var pdfBytes = _reportService.GenerateSalesReportPdf(model, factorViewModels);

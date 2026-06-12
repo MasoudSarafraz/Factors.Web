@@ -134,8 +134,8 @@ public class ReportService : IReportService
                         // Filter info
                         column.Item().Row(row =>
                         {
-                            row.RelativeItem().Text($"از تاریخ: {PersianDateService.ToPersian(filter.FromDate ?? DateTime.MinValue)}");
-                            row.RelativeItem().Text($"تا تاریخ: {PersianDateService.ToPersian(filter.ToDate ?? DateTime.MaxValue)}");
+                            row.RelativeItem().Text($"از تاریخ: {(filter.FromDate.HasValue ? PersianDateService.ToPersian(filter.FromDate.Value) : "نامحدود")}");
+                            row.RelativeItem().Text($"تا تاریخ: {(filter.ToDate.HasValue ? PersianDateService.ToPersian(filter.ToDate.Value) : "نامحدود")}");
                             row.RelativeItem().Text($"تعداد فاکتورها: {factors.Count}");
                         });
 

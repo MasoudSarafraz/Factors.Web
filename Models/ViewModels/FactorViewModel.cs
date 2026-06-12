@@ -45,6 +45,6 @@ public class FactorListViewModel
 {
     public List<FactorViewModel> Factors { get; set; } = new();
     public string SearchTerm { get; set; } = string.Empty;
-    public DateTime? FromDate { get; set; }
-    public DateTime? ToDate { get; set; }
+    public string FromDateJalali { get; set; } = string.Empty;
+    public string ToDateJalali { get; set; } = string.Empty;
 }

@@ -6,23 +6,21 @@
     var products = ViewBag.Products as IEnumerable<Factors.Web.Models.Entities.Product>;
 }
 
-<div class="row mb-3">
-    <div class="col-12">
-        <h4 class="fw-bold"><i class="bi bi-file-earmark-bar-graph"></i> گزارشات</h4>
-        <hr />
-    </div>
+<div class="page-header">
+    <h4><i class="bi bi-file-earmark-bar-graph"></i> گزارشات</h4>
 </div>
 
 <div class="row">
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-3">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h6 class="mb-0"><i class="bi bi-funnel"></i> فیلتر گزارش</h6>
             </div>
             <div class="card-body">
                 <form asp-action="Generate" method="post">
+                    @Html.AntiForgeryToken()
                     <div class="mb-3">
-                        <label class="form-label fw-bold">نوع گزارش</label>
+                        <label class="form-label">نوع گزارش</label>
                         <select name="ReportType" class="form-select" id="reportType">
                             <option value="factors">گزارش فاکتورها</option>
                             <option value="sales">گزارش فروش</option>
@@ -31,17 +29,17 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">از تاریخ</label>
-                        <input type="date" name="FromDate" class="form-control" />
+                        <label class="form-label">از تاریخ (شمسی)</label>
+                        <input type="text" name="FromDateJalali" class="form-control persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">تا تاریخ</label>
-                        <input type="date" name="ToDate" class="form-control" />
+                        <label class="form-label">تا تاریخ (شمسی)</label>
+                        <input type="text" name="ToDateJalali" class="form-control persian-datepicker" placeholder="مثال: 1403/12/29" autocomplete="off" />
                     </div>
 
                     <div class="mb-3" id="personFilter">
-                        <label class="form-label fw-bold">مشتری</label>
+                        <label class="form-label">مشتری</label>
                         <select name="PersonId" class="form-select">
                             <option value="">همه مشتریان</option>
                             @if (persons != null)
@@ -55,7 +53,7 @@
                     </div>
 
                     <div class="mb-3" id="categoryFilter" style="display:none;">
-                        <label class="form-label fw-bold">دسته‌بندی</label>
+                        <label class="form-label">دسته‌بندی</label>
                         <select name="CategoryId" class="form-select">
                             <option value="">همه دسته‌بندی‌ها</option>
                             @if (categories != null)
@@ -69,7 +67,7 @@
                     </div>
 
                     <div class="mb-3" id="productFilter" style="display:none;">
-                        <label class="form-label fw-bold">محصول</label>
+                        <label class="form-label">محصول</label>
                         <select name="ProductId" class="form-select">
                             <option value="">همه محصولات</option>
                             @if (products != null)
@@ -90,37 +88,43 @@
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-info text-white">
-                <h6 class="mb-0"><i class="bi bi-info-circle"></i> راهنمای گزارشات</h6>
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle text-primary"></i> راهنمای گزارشات</h6>
             </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <div class="card bg-light border-0 h-100">
+                        <div class="card bg-white border h-100">
                             <div class="card-body text-center">
-                                <i class="bi bi-receipt-cutoff text-primary" style="font-size:2rem;"></i>
-                                <h6 class="mt-2">گزارش فاکتورها</h6>
-                                <p class="text-muted small">لیست تمام فاکتورها با امکان فیلتر بر اساس تاریخ و مشتری. شامل جزئیات هر فاکتور و مبلغ کل</p>
+                                <div class="stat-icon mx-auto mb-2" style="background:#eef0ff;color:var(--primary-color);">
+                                    <i class="bi bi-receipt-cutoff fs-4"></i>
+                                </div>
+                                <h6 class="fw-bold">گزارش فاکتورها</h6>
+                                <p class="text-muted small mb-0">لیست فاکتورها با فیلتر تاریخ و مشتری. شامل جزئیات و مبالغ</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-light border-0 h-100">
+                        <div class="card bg-white border h-100">
                             <div class="card-body text-center">
-                                <i class="bi bi-graph-up text-success" style="font-size:2rem;"></i>
-                                <h6 class="mt-2">گزارش فروش</h6>
-                                <p class="text-muted small">خلاصه فروش بر اساس بازه زمانی. شامل تعداد فاکتورها، مبلغ کل فروش و آمار تفکیکی</p>
+                                <div class="stat-icon mx-auto mb-2" style="background:#e6faf7;color:var(--success-color);">
+                                    <i class="bi bi-graph-up fs-4"></i>
+                                </div>
+                                <h6 class="fw-bold">گزارش فروش</h6>
+                                <p class="text-muted small mb-0">خلاصه فروش بازه زمانی. تعداد فاکتور، مبلغ کل و آمار</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-light border-0 h-100">
+                        <div class="card bg-white border h-100">
                             <div class="card-body text-center">
-                                <i class="bi bi-box text-warning" style="font-size:2rem;"></i>
-                                <h6 class="mt-2">گزارش محصولات</h6>
-                                <p class="text-muted small">لیست محصولات با فیلتر دسته‌بندی. شامل اطلاعات محصول و قیمت‌های فعال</p>
+                                <div class="stat-icon mx-auto mb-2" style="background:#fff7e6;color:var(--warning-color);">
+                                    <i class="bi bi-box fs-4"></i>
+                                </div>
+                                <h6 class="fw-bold">گزارش محصولات</h6>
+                                <p class="text-muted small mb-0">لیست محصولات با فیلتر دسته‌بندی. شامل قیمت‌های فعال</p>
                             </div>
                         </div>
                     </div>
@@ -145,5 +149,8 @@
             $('#productFilter').show();
         }
     });
+
+    // Re-init datepickers after partial load
+    setTimeout(function() { initPersianDatepickers(); }, 200);
 </script>
 }
