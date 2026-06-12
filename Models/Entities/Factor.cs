@@ -21,7 +21,7 @@ public class Factor
     public string PersonName => Person?.PersonName ?? "";
 
     [NotMapped]
-    public decimal TotalAmount => FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0;
+    public decimal TotalAmount => FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0;
 
     [NotMapped]
     public int TotalItems => FactorItems?.Count ?? 0;

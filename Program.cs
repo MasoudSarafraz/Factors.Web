@@ -3,6 +3,7 @@ using Factors.Web.Models.Entities;
 using Factors.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +35,7 @@ builder.Services.AddIdentity<AppUser, AppRole>(options =>
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
+    options.LogoutPath = "/Account/LogoutGet";
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(12);
     options.SlidingExpiration = true;
@@ -76,11 +77,28 @@ using (var scope = app.Services.CreateScope())
                 try
                 {
                     using var cmd = conn.CreateCommand();
+                    // Check if core table exists when migrations claim to be applied
                     cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
                     var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+
+                    // Check if AppSettings table exists when the AddAppSettings migration was applied
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AppSettings'";
+                    var appSettingsTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+
+                    var needsReset = false;
                     if (!usersTableExists)
                     {
-                        logger.LogWarning("Inconsistent database detected. Recreating...");
+                        needsReset = true;
+                        logger.LogWarning("Inconsistent database detected: Users table missing. Recreating...");
+                    }
+                    else if (appliedMigrations.Contains("20240612120001_AddAppSettings") && !appSettingsTableExists)
+                    {
+                        needsReset = true;
+                        logger.LogWarning("Inconsistent database detected: AppSettings migration applied but table missing. Recreating...");
+                    }
+
+                    if (needsReset)
+                    {
                         await conn.CloseAsync();
                         await context.Database.EnsureDeletedAsync();
                     }

@@ -390,7 +390,11 @@
 
         factorItems.forEach(function(item) {
             var itemTotal = item.price * item.qty;
-            total += itemTotal;
+            // Only add to total for non-child items (pack parents and standalone products)
+            // Child items are already included in the pack parent's total
+            if (!item.parentId) {
+                total += itemTotal;
+            }
 
             if (item.isPack) {
                 var childItems = factorItems.filter(fi => fi.parentId === item.uid);
@@ -477,26 +481,32 @@
         if (!personId) { alert('لطفاً مشتری را انتخاب کنید'); return; }
         if (factorItems.length === 0) { alert('فاکتور باید حداقل یک آیتم داشته باشد'); return; }
 
+        // Build a uid-to-packId map for pack parent items
+        var uidToPackId = {};
+        factorItems.forEach(function(fi) {
+            if (fi.isPack && fi.packId) {
+                uidToPackId[fi.uid] = fi.packId;
+            }
+        });
+
         var data = {
             personId: personId,
             items: factorItems.map(function(item) {
+                var resolvedParentId = null;
+                if (item.parentId && uidToPackId[item.parentId] !== undefined) {
+                    // parentId is the uid of the pack parent; resolve to actual PackId
+                    resolvedParentId = uidToPackId[item.parentId];
+                }
                 return {
                     salableId: item.salableId,
                     packId: item.packId,
-                    parentId: item.parentId ? item.parentId.replace('pack-', '') : null,
+                    parentId: resolvedParentId,
                     qty: item.qty,
                     price: item.price,
                     productName: item.productName
                 };
             })
         };
-
-        data.items.forEach(function(item) {
-            if (item.parentId) {
-                var parentPack = factorItems.find(fi => fi.uid === item.parentId);
-                item.parentId = parentPack ? parentPack.packId : null;
-            }
-        });
 
         $.ajax({
             url: '/Factor/CreateFactor',

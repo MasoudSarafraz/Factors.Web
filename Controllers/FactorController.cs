@@ -57,7 +57,8 @@ public class FactorController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
-            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            // Only sum non-child items to avoid double-counting pack items
+            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
             TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 
@@ -194,13 +195,18 @@ public class FactorController : Controller
             .Where(p => packIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.PackName);
 
+        // Only sum non-child items to avoid double-counting pack items
+        var totalAmount = factor.FactorItems
+            .Where(fi => !fi.ParentId.HasValue)
+            .Sum(fi => fi.Price * fi.Qty);
+
         var model = new FactorViewModel
         {
             Id = factor.Id,
             PersonId = factor.PersonId,
             PersonName = factor.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(factor.CreateDate, true),
-            TotalAmount = factor.FactorItems.Sum(fi => fi.Price * fi.Qty),
+            TotalAmount = totalAmount,
             TotalItems = factor.FactorItems.Count,
             Items = factor.FactorItems.Select(fi => new FactorItemViewModel
             {
@@ -252,13 +258,18 @@ public class FactorController : Controller
             .Where(p => packIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.PackName);
 
+        // Only sum non-child items to avoid double-counting pack items
+        var totalAmount = factor.FactorItems
+            .Where(fi => !fi.ParentId.HasValue)
+            .Sum(fi => fi.Price * fi.Qty);
+
         var model = new FactorViewModel
         {
             Id = factor.Id,
             PersonId = factor.PersonId,
             PersonName = factor.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(factor.CreateDate, true),
-            TotalAmount = factor.FactorItems.Sum(fi => fi.Price * fi.Qty),
+            TotalAmount = totalAmount,
             TotalItems = factor.FactorItems.Count,
             Items = factor.FactorItems.Select(fi => new FactorItemViewModel
             {

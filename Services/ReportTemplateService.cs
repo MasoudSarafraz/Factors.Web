@@ -380,10 +380,10 @@ public class ReportTemplateService : IReportTemplateService
     private Dictionary<string, string> BuildFactorData(Factor factor)
     {
         var taxRate = 0.09m;
-        var totalAmount = factor.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0;
+        var totalAmount = factor.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0;
         var taxAmount = totalAmount * taxRate;
         var totalWithTax = totalAmount + taxAmount;
-        var totalQty = factor.FactorItems?.Sum(fi => fi.Qty) ?? 0;
+        var totalQty = factor.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Qty) ?? 0;
         var personType = factor.Person?.IsIndividual == true ? "حقیقی" : (factor.Person?.IsIndividual == false ? "حقوقی" : "");
 
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -821,7 +821,7 @@ public class ReportTemplateService : IReportTemplateService
             Id = f.Id,
             PersonName = f.Person?.PersonName ?? "",
             PersianDate = PersianDateService.ToPersian(f.CreateDate),
-            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
             TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
     }

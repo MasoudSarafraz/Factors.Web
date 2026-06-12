@@ -34,14 +34,14 @@ public class ReportService : IReportService
             TotalCategories = _context.ProductCategories.Count(),
             TotalPacks = _context.ProductPacks.Count(),
             TotalUsers = _context.Users.Count(),
-            TotalSalesAmount = factors.Sum(f => (f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0)),
+            TotalSalesAmount = factors.Sum(f => (f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)),
             RecentFactors = factors.Take(10).Select(f => new FactorViewModel
             {
                 Id = f.Id,
                 PersonId = f.PersonId,
                 PersonName = f.Person?.PersonName ?? "",
                 PersianCreateDate = PersianDateService.ToPersian(f.CreateDate),
-                TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+                TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
                 TotalItems = f.FactorItems?.Count ?? 0
             }).ToList()
         };
@@ -76,7 +76,7 @@ public class ReportService : IReportService
             {
                 Month = $"{g.Key.Year}/{g.Key.Month:00}",
                 FactorCount = g.Count(),
-                TotalAmount = g.Sum(f => f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0)
+                TotalAmount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
             })
             .OrderBy(x => x.Month)
             .ToList();

@@ -87,6 +87,14 @@ public class AccountController : Controller
 
     [HttpGet]
     [AllowAnonymous]
+    public async Task<IActionResult> LogoutGet()
+    {
+        await _signInManager.SignOutAsync();
+        return RedirectToAction("Login", "Account");
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
     public IActionResult AccessDenied()
     {
         return View();

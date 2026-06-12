@@ -93,7 +93,7 @@ public class ReportController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
             TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 
@@ -152,7 +152,7 @@ public class ReportController : Controller
             PersonId = f.PersonId,
             PersonName = f.Person?.PersonName ?? "",
             PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems?.Sum(fi => fi.Price * fi.Qty) ?? 0,
+            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
             TotalItems = f.FactorItems?.Count ?? 0
         }).ToList();
 

@@ -234,6 +234,13 @@ public class ProductController : Controller
         if (product == null)
             return NotFound();
 
+        // Get current active price
+        var now = DateTime.UtcNow;
+        var currentPrice = product.ProductPrices
+            .Where(pp => pp.StartTime <= now && pp.EndTime >= now)
+            .OrderByDescending(pp => pp.CreateDate)
+            .FirstOrDefault();
+
         return Json(new
         {
             id = product.Id,
@@ -241,6 +248,7 @@ public class ProductController : Controller
             code = product.Code,
             categoryId = product.CategoryId,
             categoryName = product.Category?.Name,
+            currentPrice = currentPrice?.Price ?? 0,
             prices = product.ProductPrices.Select(pp => new
             {
                 id = pp.Id,
@@ -264,6 +272,45 @@ public class ProductController : Controller
             return Json(new { price = 0 });
 
         return Json(new { price = price.Price });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdatePrice(int productId, decimal newPrice)
+    {
+        var product = await _context.Products
+            .Include(p => p.ProductPrices)
+            .FirstOrDefaultAsync(p => p.Id == productId);
+
+        if (product == null)
+            return NotFound();
+
+        var now = DateTime.UtcNow;
+
+        // End current active prices by setting EndTime to now
+        var activePrices = product.ProductPrices
+            .Where(pp => pp.StartTime <= now && pp.EndTime >= now)
+            .ToList();
+
+        foreach (var activePrice in activePrices)
+        {
+            activePrice.EndTime = now.AddSeconds(-1);
+            _context.ProductPrices.Update(activePrice);
+        }
+
+        // Create new price record
+        var newPriceRecord = new ProductPrice
+        {
+            ProductId = productId,
+            Price = newPrice,
+            StartTime = now,
+            EndTime = now.AddYears(1),
+            CreateDate = now
+        };
+        _context.ProductPrices.Add(newPriceRecord);
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true, message = "قیمت با موفقیت بروزرسانی شد" });
     }
 
     [HttpGet]

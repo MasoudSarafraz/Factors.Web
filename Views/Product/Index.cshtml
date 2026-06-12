@@ -172,6 +172,14 @@
                             }
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">قیمت فعلی (ریال)</label>
+                        <div class="input-group">
+                            <input type="number" id="editCurrentPrice" class="form-control" min="0" step="1000" />
+                            <span class="input-group-text">ریال</span>
+                        </div>
+                        <div class="form-text" id="editPriceNote">قیمت فعلی فعال محصول. برای تغییر، مقدار جدید وارد کنید.</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
@@ -217,15 +225,68 @@
 
 @section Scripts {
 <script>
+    // Track original price to detect changes
+    var _editOriginalPrice = 0;
+    var _editProductId = 0;
+
     function editProduct(id) {
         $.get('/Product/GetById/' + id, function(data) {
+            _editProductId = data.id;
+            _editOriginalPrice = data.currentPrice || 0;
             $('#editId').val(data.id);
             $('#editName').val(data.name);
             $('#editCode').val(data.code);
             $('#editCategoryId').val(data.categoryId);
+            $('#editCurrentPrice').val(data.currentPrice || 0);
+            if (data.currentPrice > 0) {
+                $('#editPriceNote').text('قیمت فعلی فعال: ' + data.currentPrice.toLocaleString() + ' ریال — برای تغییر، مقدار جدید وارد کنید.');
+            } else {
+                $('#editPriceNote').text('هیچ قیمت فعلی برای این محصول تعریف نشده. مقدار جدید وارد کنید.');
+            }
             new bootstrap.Modal($('#editModal')).show();
         });
     }
+
+    // Override the edit form submit to also save price if changed
+    $(document).ready(function() {
+        $('#editModal form').off('submit').on('submit', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var newPrice = parseFloat($('#editCurrentPrice').val()) || 0;
+
+            // First save the product edit via AJAX
+            $.ajax({
+                url: '/Product/Edit',
+                type: 'POST',
+                data: form.serialize(),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val()
+                },
+                success: function() {
+                    // If price changed, save the new price via dedicated endpoint
+                    if (newPrice > 0 && newPrice !== _editOriginalPrice) {
+                        $.post('/Product/UpdatePrice', {
+                            productId: _editProductId,
+                            newPrice: newPrice,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+                        }, function() {
+                            bootstrap.Modal.getInstance($('#editModal')).hide();
+                            location.reload();
+                        }).fail(function() {
+                            bootstrap.Modal.getInstance($('#editModal')).hide();
+                            location.reload();
+                        });
+                    } else {
+                        bootstrap.Modal.getInstance($('#editModal')).hide();
+                        location.reload();
+                    }
+                },
+                error: function() {
+                    alert('خطا در ویرایش محصول');
+                }
+            });
+        });
+    });
 
     function addPrice(productId, productName) {
         $('#priceProductId').val(productId);
