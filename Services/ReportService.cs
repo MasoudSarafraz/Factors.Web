@@ -46,10 +46,14 @@ public class ReportService : IReportService
             }).ToList()
         };
 
-        // Top Products
-        var topProducts = _context.FactorItems
+        // Top Products (materialize first because SQLite cannot aggregate decimal)
+        var factorItemsData = _context.FactorItems
             .Where(fi => fi.SalableId != null)
             .Include(fi => fi.Product)
+            .ToList();
+
+        var topProducts = factorItemsData
+            .Where(fi => fi.Product != null)
             .GroupBy(fi => new { fi.SalableId, fi.Product!.Name })
             .Select(g => new TopProductViewModel
             {
