@@ -119,10 +119,6 @@ using (var scope = app.Services.CreateScope())
         }
 
         await context.Database.MigrateAsync();
-
-        // Ensure RBAC tables exist (safe for existing databases)
-        await EnsureRbacTablesAsync(context, logger);
-
         await SeedData.InitializeAsync(services);
         logger.LogInformation("Database initialized successfully.");
     }
@@ -149,82 +145,3 @@ app.UseAuthorization();
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-
-/// <summary>
-/// Ensures RBAC tables (Permissions, RolePermissions, UserPermissions) exist in the database.
-/// Safe to run on existing databases - creates tables only if they don't exist.
-/// </summary>
-async Task EnsureRbacTablesAsync(AppDbContext context, ILogger<Program> logger)
-{
-    var conn = context.Database.GetDbConnection();
-    await conn.OpenAsync();
-    try
-    {
-        using var cmd = conn.CreateCommand();
-
-        // Check if Permissions table already exists
-        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Permissions'";
-        var exists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
-
-        if (exists)
-        {
-            logger.LogInformation("RBAC tables already exist. Skipping creation.");
-            return;
-        }
-
-        logger.LogInformation("Creating RBAC tables (Permissions, RolePermissions, UserPermissions)...");
-
-        using var transaction = await conn.BeginTransactionAsync();
-        cmd.Transaction = transaction;
-
-        // Create Permissions table
-        cmd.CommandText = @"
-            CREATE TABLE Permissions (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL CHECK(length(Name) <= 100),
-                DisplayName TEXT NOT NULL CHECK(length(DisplayName) <= 200),
-                Category TEXT NOT NULL CHECK(length(Category) <= 100),
-                Description TEXT CHECK(length(Description) <= 500)
-            );
-            CREATE UNIQUE INDEX IX_Permissions_Name ON Permissions (Name);
-        ";
-        await cmd.ExecuteNonQueryAsync();
-
-        // Create RolePermissions table
-        cmd.CommandText = @"
-            CREATE TABLE RolePermissions (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                RoleId INTEGER NOT NULL,
-                PermissionId INTEGER NOT NULL,
-                FOREIGN KEY (RoleId) REFERENCES Roles(Id) ON DELETE CASCADE,
-                FOREIGN KEY (PermissionId) REFERENCES Permissions(Id) ON DELETE CASCADE
-            );
-            CREATE UNIQUE INDEX IX_RolePermissions_RoleId_PermissionId ON RolePermissions (RoleId, PermissionId);
-            CREATE INDEX IX_RolePermissions_PermissionId ON RolePermissions (PermissionId);
-        ";
-        await cmd.ExecuteNonQueryAsync();
-
-        // Create UserPermissions table
-        cmd.CommandText = @"
-            CREATE TABLE UserPermissions (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                UserId INTEGER NOT NULL,
-                PermissionId INTEGER NOT NULL,
-                IsGranted INTEGER NOT NULL DEFAULT 1,
-                FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-                FOREIGN KEY (PermissionId) REFERENCES Permissions(Id) ON DELETE CASCADE
-            );
-            CREATE UNIQUE INDEX IX_UserPermissions_UserId_PermissionId ON UserPermissions (UserId, PermissionId);
-            CREATE INDEX IX_UserPermissions_PermissionId ON UserPermissions (PermissionId);
-        ";
-        await cmd.ExecuteNonQueryAsync();
-
-        await transaction.CommitAsync();
-        logger.LogInformation("RBAC tables created successfully.");
-    }
-    finally
-    {
-        if (conn.State == System.Data.ConnectionState.Open)
-            await conn.CloseAsync();
-    }
-}
