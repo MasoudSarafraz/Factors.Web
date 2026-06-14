@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("Product.View")]
 public class ProductController : Controller
 {
     private readonly AppDbContext _context;
@@ -74,6 +76,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Product.Create")]
     public async Task<IActionResult> Create(ProductViewModel model)
     {
         if (!ModelState.IsValid)
@@ -122,6 +125,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Product.Edit")]
     public async Task<IActionResult> Edit(ProductViewModel model)
     {
         if (!ModelState.IsValid)
@@ -153,7 +157,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
+    [PermissionAuthorize("Product.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _context.Products
@@ -180,6 +184,7 @@ public class ProductController : Controller
     // Product Price Management
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Product.ManagePrice")]
     public async Task<IActionResult> AddPrice(ProductPriceViewModel model)
     {
         if (!ModelState.IsValid)
@@ -209,7 +214,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
+    [PermissionAuthorize("Product.DeletePrice")]
     public async Task<IActionResult> DeletePrice(int id)
     {
         var price = await _context.ProductPrices.FindAsync(id);
@@ -276,6 +281,7 @@ public class ProductController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Product.ManagePrice")]
     public async Task<IActionResult> UpdatePrice(int productId, decimal newPrice)
     {
         var product = await _context.Products

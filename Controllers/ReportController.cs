@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Factors.Web.Services;
@@ -8,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Factors.Web.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize]
+[PermissionAuthorize("Report.View")]
 public class ReportController : Controller
 {
     private readonly AppDbContext _context;
@@ -30,6 +32,7 @@ public class ReportController : Controller
     }
 
     [HttpPost]
+    [PermissionAuthorize("Report.Generate")]
     public async Task<IActionResult> Generate(ReportFilterViewModel model)
     {
         // Null safety

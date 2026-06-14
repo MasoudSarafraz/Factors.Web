@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Factors.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize]
+[PermissionAuthorize("Settings.View")]
 public class SettingsController : Controller
 {
     private readonly AppDbContext _context;
@@ -58,6 +60,7 @@ public class SettingsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Settings.Edit")]
     public async Task<IActionResult> Index(SettingsSaveViewModel model)
     {
         await SetSettingAsync("CompanyName", model.CompanyName ?? "سیستم مدیریت فاکتور");

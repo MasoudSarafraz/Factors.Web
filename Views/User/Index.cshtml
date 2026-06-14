@@ -43,7 +43,8 @@
                     <tr>
                         <th>نام نقش</th>
                         <th>توضیحات</th>
-                        <th>سطح دسترسی</th>
+                        <th>تعداد دسترسی</th>
+                        <th style="width:180px">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,20 +54,17 @@
                             <td><span class="badge bg-primary">@role.Name</span></td>
                             <td>@role.Description</td>
                             <td>
-                                @switch (role.Name)
+                                <span class="badge bg-info">@role.PermissionCount دسترسی</span>
+                            </td>
+                            <td>
+                                <a asp-action="RolePermissions" asp-route-id="@role.Id" class="btn btn-sm btn-outline-warning" title="مدیریت دسترسی‌ها">
+                                    <i class="bi bi-shield-lock"></i> دسترسی‌ها
+                                </a>
+                                @if (role.Name != "Admin")
                                 {
-                                    case "Admin":
-                                        <span class="text-danger">دسترسی کامل</span>
-                                        break;
-                                    case "Manager":
-                                        <span class="text-warning">مدیریت فاکتور و گزارش</span>
-                                        break;
-                                    case "User":
-                                        <span class="text-info">مشاهده و ایجاد فاکتور</span>
-                                        break;
-                                    default:
-                                        <span class="text-muted">سفارشی</span>
-                                        break;
+                                    <form asp-action="DeleteRole" asp-route-id="@role.Id" method="post" class="d-inline" onsubmit="return confirm('آیا از حذف این نقش مطمئن هستید؟')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف نقش"><i class="bi bi-trash"></i></button>
+                                    </form>
                                 }
                             </td>
                         </tr>
@@ -94,7 +92,7 @@
                         <th>نقش‌ها</th>
                         <th>وضعیت</th>
                         <th>آخرین ورود</th>
-                        <th style="width:180px">عملیات</th>
+                        <th style="width:240px">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -138,6 +136,9 @@
                                     <button class="btn btn-sm btn-outline-warning" onclick="editUser(@user.Id)" title="ویرایش">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    <a asp-action="UserPermissions" asp-route-id="@user.Id" class="btn btn-sm btn-outline-info" title="دسترسی‌های فردی">
+                                        <i class="bi bi-key"></i>
+                                    </a>
                                     <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-@(user.IsActive ? "secondary" : "success")" title="@(user.IsActive ? "غیرفعال" : "فعال") کردن">
                                             <i class="bi bi-@(user.IsActive ? "pause" : "play")-circle"></i>

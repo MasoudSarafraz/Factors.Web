@@ -1,0 +1,147 @@
+@model Factors.Web.Models.ViewModels.UserPermissionsViewModel
+@{
+    ViewData["Title"] = $"دسترسی‌های {Model.FullName}";
+}
+
+<div class="page-header">
+    <h4>
+        <span class="icon-badge icon-badge-purple"><i class="bi bi-person-gear"></i></span>
+        دسترسی‌های فردی: <span class="text-primary">@Model.FullName</span>
+    </h4>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
+
+<div class="alert alert-info py-2 mb-3">
+    <i class="bi bi-info-circle"></i>
+    <strong>راهنما:</strong>
+    <span class="me-2">🟢 <strong>اعطا شده</strong> = دسترسی فرداً به کاربر داده شده</span>
+    <span class="me-2">🔴 <strong>سلب شده</strong> = دسترسی از کاربر گرفته شده (حتی اگر نقشش داشته باشد)</span>
+    <span>⚪ <strong>ارث از نقش</strong> = بدون تغییر فردی، دسترسی از نقش‌ها تعیین می‌شود</span>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 mb-3">
+    <div class="card-body p-2">
+        <div class="row">
+            <div class="col-md-4">
+                <small class="text-muted">نام کاربری:</small> <strong>@Model.Username</strong>
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">نقش‌ها:</small>
+                @foreach (var role in Model.Roles.Split(", ", StringSplitOptions.RemoveEmptyEntries))
+                {
+                    <span class="badge bg-info">@role</span>
+                }
+            </div>
+            <div class="col-md-4">
+                <small class="text-muted">دسترسی از نقش:</small>
+                <span class="badge bg-secondary" id="rolePermCount">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form asp-action="UserPermissions" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="UserId" value="@Model.UserId" />
+
+    @foreach (var category in Model.PermissionsByCategory)
+    {
+        <div class="card border-0 shadow-sm rounded-3 mb-3">
+            <div class="card-header-compact">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="header-title">
+                        <span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-folder2-open"></i></span>
+                        @category.Key
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary reset-category-btn" data-category="@category.Key" title="بازنشانی به حالت ارث از نقش">
+                        <i class="bi bi-arrow-counterclockwise"></i> بازنشانی
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 table-compact">
+                        <thead class="table-light">
+                            <tr>
+                                <th>عنوان دسترسی</th>
+                                <th style="width:100px">از نقش</th>
+                                <th style="width:220px">وضعیت دسترسی فردی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < category.Value.Count; i++)
+                            {
+                                var perm = category.Value[i];
+                                var inputName = $"Permissions[{i}]";
+                                <tr>
+                                    <td>
+                                        @perm.DisplayName
+                                        <br /><code class="small text-muted">@perm.PermissionName</code>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (perm.IsFromRole)
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-check"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary"><i class="bi bi-dash"></i></span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="Permissions[@i].PermissionId" value="@perm.PermissionId" />
+                                        <div class="btn-group btn-group-sm w-100" role="group">
+                                            <input type="radio" class="btn-check" name="Permissions[@i].IsGranted" id="grant-@perm.PermissionId" value="true" 
+                                                   autocomplete="off" @(perm.IsGranted == true ? "checked" : "") />
+                                            <label class="btn btn-outline-success btn-sm" for="grant-@perm.PermissionId" title="اعطا شده">
+                                                <i class="bi bi-check-circle"></i> اعطا
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="Permissions[@i].IsGranted" id="inherit-@perm.PermissionId" value="" 
+                                                   autocomplete="off" @(perm.IsGranted == null ? "checked" : "") />
+                                            <label class="btn btn-outline-secondary btn-sm" for="inherit-@perm.PermissionId" title="ارث از نقش">
+                                                <i class="bi bi-arrow-repeat"></i> ارث
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="Permissions[@i].IsGranted" id="deny-@perm.PermissionId" value="false" 
+                                                   autocomplete="off" @(perm.IsGranted == false ? "checked" : "") />
+                                            <label class="btn btn-outline-danger btn-sm" for="deny-@perm.PermissionId" title="سلب شده">
+                                                <i class="bi bi-x-circle"></i> سلب
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between mt-3">
+        <a asp-action="Index" class="btn btn-sm btn-secondary">
+            <i class="bi bi-x-lg"></i> انصراف
+        </a>
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-check-lg"></i> ذخیره دسترسی‌ها
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    // Reset category buttons
+    document.querySelectorAll('.reset-category-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var category = this.dataset.category;
+            // Find all "inherit" radio buttons in this category's table
+            this.closest('.card').querySelectorAll('input[value=""]').forEach(function(radio) {
+                radio.checked = true;
+            });
+        });
+    });
+</script>
+}

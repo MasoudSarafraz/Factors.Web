@@ -1,0 +1,136 @@
+@model Factors.Web.Models.ViewModels.RolePermissionsViewModel
+@{
+    ViewData["Title"] = $"دسترسی‌های نقش {Model.RoleName}";
+}
+
+<div class="page-header">
+    <h4>
+        <span class="icon-badge icon-badge-orange"><i class="bi bi-shield-lock"></i></span>
+        دسترسی‌های نقش: <span class="badge bg-primary">@Model.RoleName</span>
+    </h4>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> بازگشت
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.RoleDescription))
+{
+    <div class="alert alert-info py-2 mb-3">
+        <i class="bi bi-info-circle"></i> @Model.RoleDescription
+    </div>
+}
+
+<form asp-action="RolePermissions" asp-route-id="@Model.RoleId" method="post">
+    @Html.AntiForgeryToken()
+    
+    @foreach (var category in Model.PermissionsByCategory)
+    {
+        <div class="card border-0 shadow-sm rounded-3 mb-3">
+            <div class="card-header-compact">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="header-title">
+                        <span class="icon-badge icon-badge-sm icon-badge-purple"><i class="bi bi-folder2-open"></i></span>
+                        @category.Key
+                    </span>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input category-check" data-category="@category.Key" id="checkAll-@category.Key" checked />
+                        <label class="form-check-label small" for="checkAll-@category.Key">انتخاب همه</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 table-compact">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:50px">انتخاب</th>
+                                <th>عنوان دسترسی</th>
+                                <th>نام فنی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < category.Value.Count; i++)
+                            {
+                                <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="permissionsByCategory[@category.Key][@i].IsChecked" value="true"
+                                               class="form-check-input perm-check" data-category="@category.Key"
+                                               @(category.Value[i].IsChecked ? "checked" : "") />
+                                        <input type="hidden" name="permissionsByCategory[@category.Key][@i].PermissionId" value="@category.Value[i].PermissionId" />
+                                        <input type="hidden" name="permissionsByCategory[@category.Key][@i].PermissionName" value="@category.Value[i].PermissionName" />
+                                        <input type="hidden" name="permissionsByCategory[@category.Key][@i].DisplayName" value="@category.Value[i].DisplayName" />
+                                        <input type="hidden" name="permissionsByCategory[@category.Key][@i].Category" value="@category.Value[i].Category" />
+                                        @* Unchecked checkboxes don't submit, so we need a hidden false value *@
+                                        @if (!category.Value[i].IsChecked)
+                                        {
+                                            <input type="hidden" name="permissionsByCategory[@category.Key][@i].IsChecked" value="false" />
+                                        }
+                                    </td>
+                                    <td>@category.Value[i].DisplayName</td>
+                                    <td><code class="small">@category.Value[i].PermissionName</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between mt-3">
+        <a asp-action="Index" class="btn btn-sm btn-secondary">
+            <i class="bi bi-x-lg"></i> انصراف
+        </a>
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-check-lg"></i> ذخیره دسترسی‌ها
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    // Category select all toggle
+    document.querySelectorAll('.category-check').forEach(function(checkAll) {
+        checkAll.addEventListener('change', function() {
+            var category = this.dataset.category;
+            var isChecked = this.checked;
+            document.querySelectorAll('.perm-check[data-category="' + category + '"]').forEach(function(cb) {
+                cb.checked = isChecked;
+                // Update hidden field
+                var hidden = cb.nextElementSibling;
+                // Handle the hidden false value
+                var parent = cb.parentElement;
+                var hiddenInputs = parent.querySelectorAll('input[type="hidden"]');
+                hiddenInputs.forEach(function(h) {
+                    if (h.name.includes('IsChecked') && h.value === 'false') {
+                        h.disabled = isChecked;
+                    }
+                });
+            });
+        });
+    });
+
+    // Update category check-all when individual checkboxes change
+    document.querySelectorAll('.perm-check').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var category = this.dataset.category;
+            var allChecks = document.querySelectorAll('.perm-check[data-category="' + category + '"]');
+            var checkedCount = Array.from(allChecks).filter(c => c.checked).length;
+            var checkAll = document.getElementById('checkAll-' + category);
+            if (checkAll) {
+                checkAll.checked = checkedCount === allChecks.length;
+                checkAll.indeterminate = checkedCount > 0 && checkedCount < allChecks.length;
+            }
+        });
+    });
+
+    // Initialize check-all states
+    document.querySelectorAll('.category-check').forEach(function(checkAll) {
+        var category = checkAll.dataset.category;
+        var allChecks = document.querySelectorAll('.perm-check[data-category="' + category + '"]');
+        var checkedCount = Array.from(allChecks).filter(c => c.checked).length;
+        checkAll.checked = checkedCount === allChecks.length;
+        checkAll.indeterminate = checkedCount > 0 && checkedCount < allChecks.length;
+    });
+</script>
+}

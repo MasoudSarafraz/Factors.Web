@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Factors.Web.Services;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("ReportBuilder.View")]
 public class ReportBuilderController : Controller
 {
     private readonly AppDbContext _context;
@@ -129,6 +131,7 @@ public class ReportBuilderController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("ReportBuilder.Generate")]
     public async Task<IActionResult> GenerateSingleFactorReport(int templateId, int factorId)
     {
         try
@@ -153,6 +156,7 @@ public class ReportBuilderController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("ReportBuilder.Generate")]
     public async Task<IActionResult> GenerateBatchFactorReport(int templateId, string? search, string? fromDateJalali, string? toDateJalali, int? personId)
     {
         try

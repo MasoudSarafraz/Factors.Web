@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Factors.Web.Services;
@@ -8,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Factors.Web.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize]
+[PermissionAuthorize("ReportTemplate.View")]
 public class ReportTemplateController : Controller
 {
     private readonly AppDbContext _context;
@@ -47,6 +49,7 @@ public class ReportTemplateController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("ReportTemplate.Manage")]
     public async Task<IActionResult> Upload(ReportTemplateUploadViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -102,6 +105,7 @@ public class ReportTemplateController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("ReportTemplate.Manage")]
     public async Task<IActionResult> MapMarkers(SaveMarkerMappingViewModel model)
     {
         if (!ModelState.IsValid)
@@ -129,6 +133,7 @@ public class ReportTemplateController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("ReportTemplate.Manage")]
     public async Task<IActionResult> Delete(int id)
     {
         try

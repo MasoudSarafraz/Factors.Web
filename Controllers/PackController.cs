@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("Pack.View")]
 public class PackController : Controller
 {
     private readonly AppDbContext _context;
@@ -62,6 +64,7 @@ public class PackController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Pack.Create")]
     public async Task<IActionResult> Create(PackViewModel model)
     {
         if (!ModelState.IsValid)
@@ -93,6 +96,7 @@ public class PackController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Pack.Edit")]
     public async Task<IActionResult> Edit(PackViewModel model)
     {
         if (!ModelState.IsValid)
@@ -122,7 +126,7 @@ public class PackController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
+    [PermissionAuthorize("Pack.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var pack = await _context.ProductPacks
@@ -143,6 +147,7 @@ public class PackController : Controller
     // Pack Items Management
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Pack.Create")]
     public async Task<IActionResult> AddItem(PackItemViewModel model)
     {
         if (!ModelState.IsValid)
@@ -169,7 +174,7 @@ public class PackController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
+    [PermissionAuthorize("Pack.Delete")]
     public async Task<IActionResult> DeleteItem(int id)
     {
         var item = await _context.ProductPackItems.FindAsync(id);

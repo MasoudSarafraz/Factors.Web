@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("Category.View")]
 public class CategoryController : Controller
 {
     private readonly AppDbContext _context;
@@ -51,6 +53,7 @@ public class CategoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Category.Create")]
     public async Task<IActionResult> Create(CategoryViewModel model)
     {
         if (!ModelState.IsValid)
@@ -82,6 +85,7 @@ public class CategoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Category.Edit")]
     public async Task<IActionResult> Edit(CategoryViewModel model)
     {
         if (!ModelState.IsValid)
@@ -111,7 +115,7 @@ public class CategoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin")]
+    [PermissionAuthorize("Category.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var category = await _context.ProductCategories

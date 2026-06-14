@@ -22,6 +22,9 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
     public DbSet<ReportTemplate> ReportTemplates { get; set; }
     public DbSet<ReportTemplateMarker> ReportTemplateMarkers { get; set; }
     public DbSet<AppSetting> AppSettings { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<UserPermission> UserPermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -150,6 +153,47 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, int>
             e.Property(x => x.Key).IsRequired().HasMaxLength(100);
             e.HasIndex(x => x.Key).IsUnique();
             e.Property(x => x.Value).HasMaxLength(2000);
+        });
+
+        // Permission
+        builder.Entity<Permission>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Name).IsUnique();
+            e.Property(x => x.DisplayName).IsRequired().HasMaxLength(200);
+            e.Property(x => x.Category).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasMany(x => x.RolePermissions)
+             .WithOne(x => x.Permission)
+             .HasForeignKey(x => x.PermissionId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.UserPermissions)
+             .WithOne(x => x.Permission)
+             .HasForeignKey(x => x.PermissionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // RolePermission
+        builder.Entity<RolePermission>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
+            e.HasOne(x => x.Role)
+             .WithMany()
+             .HasForeignKey(x => x.RoleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // UserPermission
+        builder.Entity<UserPermission>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.UserId, x.PermissionId }).IsUnique();
+            e.HasOne(x => x.User)
+             .WithMany()
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

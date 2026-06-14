@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Factors.Web.Services;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("Factor.View")]
 public class FactorController : Controller
 {
     private readonly AppDbContext _context;
@@ -79,6 +81,7 @@ public class FactorController : Controller
     }
 
     [HttpGet]
+    [PermissionAuthorize("Factor.Create")]
     public async Task<IActionResult> Create()
     {
         ViewBag.Persons = await _context.Persons
@@ -116,6 +119,7 @@ public class FactorController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Factor.Create")]
     public async Task<IActionResult> CreateFactor([FromBody] FactorCreateViewModel model)
     {
         if (!ModelState.IsValid)
@@ -236,6 +240,7 @@ public class FactorController : Controller
     }
 
     [HttpGet]
+    [PermissionAuthorize("Factor.Print")]
     public async Task<IActionResult> Print(int id, int? templateId)
     {
         var factor = await _context.Factors
@@ -339,7 +344,7 @@ public class FactorController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin,Manager")]
+    [PermissionAuthorize("Factor.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var factor = await _context.Factors

@@ -1,4 +1,5 @@
 using Factors.Web.Data;
+using Factors.Web.Infrastructure;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Factors.Web.Controllers;
 
 [Authorize]
+[PermissionAuthorize("Person.View")]
 public class PersonController : Controller
 {
     private readonly AppDbContext _context;
@@ -52,6 +54,7 @@ public class PersonController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Person.Create")]
     public async Task<IActionResult> Create(PersonViewModel model)
     {
         if (!ModelState.IsValid)
@@ -76,6 +79,7 @@ public class PersonController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [PermissionAuthorize("Person.Edit")]
     public async Task<IActionResult> Edit(PersonViewModel model)
     {
         if (!ModelState.IsValid)
@@ -98,7 +102,7 @@ public class PersonController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin")]
+    [PermissionAuthorize("Person.Delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var person = await _context.Persons

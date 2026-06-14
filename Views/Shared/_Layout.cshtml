@@ -1,3 +1,16 @@
+@using System.Security.Claims
+@inject IPermissionService PermissionService
+@{
+    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    int uid = 0;
+    if (!string.IsNullOrEmpty(userId)) int.TryParse(userId, out uid);
+    var isAdmin = User.IsInRole("Admin");
+    
+    // Cache permissions for this request
+    var userPerms = isAdmin ? null : (uid > 0 ? await PermissionService.GetUserPermissionNamesAsync(uid) : new HashSet<string>());
+    bool HasPerm(string perm) => isAdmin || (userPerms != null && userPerms.Contains(perm));
+}
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -52,68 +65,116 @@
     <div class="sidebar bg-white shadow-sm" id="sidebar">
         <div class="sidebar-content">
             <!-- Dashboard -->
-            <div class="sidebar-section">
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-speedometer2"></i> داشبورد
-                </a>
-            </div>
-
-            <!-- تعریف اطلاعات -->
-            <div class="sidebar-section">
-                <div class="sidebar-heading">تعریف اطلاعات</div>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Category" ? "active" : "")" asp-controller="Category" asp-action="Index">
-                    <i class="bi bi-folder"></i> دسته‌بندی‌ها
-                </a>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Product" ? "active" : "")" asp-controller="Product" asp-action="Index">
-                    <i class="bi bi-box"></i> محصولات
-                </a>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")" asp-controller="Person" asp-action="Index">
-                    <i class="bi bi-people"></i> اشخاص
-                </a>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pack" ? "active" : "")" asp-controller="Pack" asp-action="Index">
-                    <i class="bi bi-box-seam"></i> بسته‌ها
-                </a>
-            </div>
-
-            <!-- عملیات -->
-            <div class="sidebar-section">
-                <div class="sidebar-heading">عملیات</div>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Factor" ? "active" : "")" asp-controller="Factor" asp-action="Index">
-                    <i class="bi bi-receipt-cutoff"></i> فاکتورها
-                </a>
-            </div>
-
-            <!-- مدیریت -->
-            <div class="sidebar-section">
-                <div class="sidebar-heading">گزارش‌سازی</div>
-                <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportBuilder" ? "active" : "")" asp-controller="ReportBuilder" asp-action="Index">
-                    <i class="bi bi-magic"></i> مرکز گزارش‌سازی
-                </a>
-            </div>
-
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            @if (HasPerm("Dashboard.View"))
             {
                 <div class="sidebar-section">
-                    <div class="sidebar-heading">مدیریت</div>
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")" asp-controller="Report" asp-action="Index">
-                        <i class="bi bi-file-earmark-bar-graph"></i> گزارشات PDF
-                    </a>
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportTemplate" ? "active" : "")" asp-controller="ReportTemplate" asp-action="Index">
-                        <i class="bi bi-file-earmark-word"></i> قالب‌های گزارش
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-speedometer2"></i> داشبورد
                     </a>
                 </div>
             }
 
-            @if (User.IsInRole("Admin"))
+            <!-- تعریف اطلاعات -->
+            @{
+                var showCategory = HasPerm("Category.View");
+                var showProduct = HasPerm("Product.View");
+                var showPerson = HasPerm("Person.View");
+                var showPack = HasPerm("Pack.View");
+            }
+            @if (showCategory || showProduct || showPerson || showPack)
+            {
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">تعریف اطلاعات</div>
+                    @if (showCategory)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Category" ? "active" : "")" asp-controller="Category" asp-action="Index">
+                            <i class="bi bi-folder"></i> دسته‌بندی‌ها
+                        </a>
+                    }
+                    @if (showProduct)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Product" ? "active" : "")" asp-controller="Product" asp-action="Index">
+                            <i class="bi bi-box"></i> محصولات
+                        </a>
+                    }
+                    @if (showPerson)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Person" ? "active" : "")" asp-controller="Person" asp-action="Index">
+                            <i class="bi bi-people"></i> اشخاص
+                        </a>
+                    }
+                    @if (showPack)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pack" ? "active" : "")" asp-controller="Pack" asp-action="Index">
+                            <i class="bi bi-box-seam"></i> بسته‌ها
+                        </a>
+                    }
+                </div>
+            }
+
+            <!-- عملیات -->
+            @if (HasPerm("Factor.View"))
+            {
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">عملیات</div>
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Factor" ? "active" : "")" asp-controller="Factor" asp-action="Index">
+                        <i class="bi bi-receipt-cutoff"></i> فاکتورها
+                    </a>
+                </div>
+            }
+
+            <!-- گزارش‌سازی -->
+            @{
+                var showReportBuilder = HasPerm("ReportBuilder.View");
+                var showReport = HasPerm("Report.View");
+                var showTemplate = HasPerm("ReportTemplate.View");
+            }
+            @if (showReportBuilder || showReport || showTemplate)
+            {
+                <div class="sidebar-section">
+                    <div class="sidebar-heading">گزارش‌سازی</div>
+                    @if (showReportBuilder)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportBuilder" ? "active" : "")" asp-controller="ReportBuilder" asp-action="Index">
+                            <i class="bi bi-magic"></i> مرکز گزارش‌سازی
+                        </a>
+                    }
+                    @if (showReport)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Report" ? "active" : "")" asp-controller="Report" asp-action="Index">
+                            <i class="bi bi-file-earmark-bar-graph"></i> گزارشات PDF
+                        </a>
+                    }
+                    @if (showTemplate)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ReportTemplate" ? "active" : "")" asp-controller="ReportTemplate" asp-action="Index">
+                            <i class="bi bi-file-earmark-word"></i> قالب‌های گزارش
+                        </a>
+                    }
+                </div>
+            }
+
+            <!-- تنظیمات -->
+            @{
+                var showSettings = HasPerm("Settings.View");
+                var showUsers = HasPerm("User.View");
+            }
+            @if (showSettings || showUsers)
             {
                 <div class="sidebar-section">
                     <div class="sidebar-heading">تنظیمات</div>
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
-                        <i class="bi bi-gear"></i> تنظیمات سیستم
-                    </a>
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "User" ? "active" : "")" asp-controller="User" asp-action="Index">
-                        <i class="bi bi-person-gear"></i> مدیریت کاربران
-                    </a>
+                    @if (showSettings)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
+                            <i class="bi bi-gear"></i> تنظیمات سیستم
+                        </a>
+                    }
+                    @if (showUsers)
+                    {
+                        <a class="sidebar-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "User" ? "active" : "")" asp-controller="User" asp-action="Index">
+                            <i class="bi bi-person-gear"></i> مدیریت کاربران
+                        </a>
+                    }
                 </div>
             }
         </div>
