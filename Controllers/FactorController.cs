@@ -14,14 +14,12 @@ namespace Factors.Web.Controllers;
 public class FactorController : Controller
 {
     private readonly AppDbContext _context;
-    private readonly IReportService _reportService;
     private readonly IReportTemplateService _reportTemplateService;
     private readonly ILogger<FactorController> _logger;
 
-    public FactorController(AppDbContext context, IReportService reportService, IReportTemplateService reportTemplateService, ILogger<FactorController> logger)
+    public FactorController(AppDbContext context, IReportTemplateService reportTemplateService, ILogger<FactorController> logger)
     {
         _context = context;
-        _reportService = reportService;
         _reportTemplateService = reportTemplateService;
         _logger = logger;
     }
@@ -318,7 +316,7 @@ public class FactorController : Controller
             }
         }
 
-        // If a template is selected (and it's not the PDF option which is Id=0)
+        // If a template is selected, generate Word report from template
         if (effectiveTemplateId.HasValue && effectiveTemplateId.Value > 0)
         {
             try
@@ -333,13 +331,15 @@ public class FactorController : Controller
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to generate report from template {TemplateId}, falling back to default PDF", effectiveTemplateId.Value);
+                _logger.LogWarning(ex, "خطا در تولید گزارش از قالب {TemplateId}", effectiveTemplateId.Value);
+                TempData["Error"] = "خطا در تولید گزارش. لطفاً قالب را بررسی کنید.";
+                return RedirectToAction("Details", new { id });
             }
         }
 
-        // Fallback to default PDF
-        var pdfBytes = _reportService.GenerateFactorReportPdf(model);
-        return File(pdfBytes, "application/pdf", $"Factor-{id}.pdf");
+        // No template configured - show error
+        TempData["Error"] = "هیچ قالب چاپی تنظیم نشده است. لطفاً ابتدا یک قالب گزارش آپلود و تنظیم کنید.";
+        return RedirectToAction("Details", new { id });
     }
 
     [HttpPost]

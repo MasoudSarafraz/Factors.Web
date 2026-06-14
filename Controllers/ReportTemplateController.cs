@@ -84,14 +84,14 @@ public class ReportTemplateController : Controller
     }
 
     /// <summary>
-    /// فرم نقشه‌برداری مارکرها به پراپرتی‌ها
+    /// نقشه‌برداری ویژوال مارکرها - نمایش سند Word با مارکرهای قابل کلیک
     /// </summary>
     public async Task<IActionResult> MapMarkers(int templateId)
     {
         try
         {
-            var model = await _templateService.GetMarkerMappingAsync(templateId);
-            return View(model);
+            var preview = await _templateService.GetTemplatePreviewAsync(templateId);
+            return View(preview);
         }
         catch (ArgumentException ex)
         {
@@ -101,30 +101,24 @@ public class ReportTemplateController : Controller
     }
 
     /// <summary>
-    /// ذخیره نقشه‌برداری مارکرها
+    /// ذخیره نقشه‌برداری مارکرها (AJAX)
     /// </summary>
     [HttpPost]
-    [ValidateAntiForgeryToken]
     [PermissionAuthorize("ReportTemplate.Manage")]
-    public async Task<IActionResult> MapMarkers(SaveMarkerMappingViewModel model)
+    public async Task<IActionResult> SaveMapping([FromBody] SaveMarkerMappingViewModel model)
     {
         if (!ModelState.IsValid)
-        {
-            TempData["Error"] = "داده‌های وارد شده نامعتبر است";
-            return RedirectToAction("MapMarkers", new { templateId = model.TemplateId });
-        }
+            return Json(new { success = false, message = "داده‌های وارد شده نامعتبر است" });
 
         try
         {
             await _templateService.SaveMarkerMappingsAsync(model);
-            TempData["Success"] = "نقشه‌برداری مارکرها با موفقیت ذخیره شد";
-            return RedirectToAction("Index");
+            return Json(new { success = true, message = "نقشه‌برداری مارکرها با موفقیت ذخیره شد" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "خطا در ذخیره نقشه‌برداری");
-            TempData["Error"] = $"خطا: {ex.Message}";
-            return RedirectToAction("MapMarkers", new { templateId = model.TemplateId });
+            return Json(new { success = false, message = $"خطا: {ex.Message}" });
         }
     }
 

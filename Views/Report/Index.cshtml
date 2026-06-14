@@ -1,158 +1,435 @@
-@model Factors.Web.Models.ViewModels.ReportFilterViewModel
+@model Factors.Web.Models.ViewModels.StatisticalReportQuery
 @{
-    ViewData["Title"] = "گزارشات";
+    ViewData["Title"] = "گزارش‌ساز آماری";
     var persons = ViewBag.Persons as IEnumerable<Factors.Web.Models.Entities.Person>;
     var categories = ViewBag.Categories as IEnumerable<Factors.Web.Models.Entities.ProductCategory>;
-    var products = ViewBag.Products as IEnumerable<Factors.Web.Models.Entities.Product>;
 }
 
 <div class="page-header">
-    <h4><i class="bi bi-file-earmark-bar-graph"></i> گزارشات</h4>
+    <h4><i class="bi bi-bar-chart-line"></i> گزارش‌ساز آماری</h4>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary btn-sm" onclick="loadReport()" title="بارگذاری مجدد">
+            <i class="bi bi-arrow-clockwise"></i> بروزرسانی
+        </button>
+    </div>
 </div>
 
-<div class="row">
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header-compact">
-                <span class="icon-badge icon-badge-blue"><i class="bi bi-funnel"></i></span>
-                <span class="header-title">فیلتر گزارش</span>
-            </div>
-            <div class="card-body">
-                <form asp-action="Generate" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label class="form-label-compact">نوع گزارش</label>
-                        <select name="ReportType" class="form-select form-select-sm" id="reportType">
-                            <option value="factors">گزارش فاکتورها</option>
-                            <option value="sales">گزارش فروش</option>
-                            <option value="products">گزارش محصولات</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label-compact">از تاریخ (شمسی)</label>
-                        <input type="text" name="FromDateJalali" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label-compact">تا تاریخ (شمسی)</label>
-                        <input type="text" name="ToDateJalali" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/12/29" autocomplete="off" />
-                    </div>
-
-                    <div class="mb-3" id="personFilter">
-                        <label class="form-label-compact">مشتری</label>
-                        <select name="PersonId" class="form-select form-select-sm">
-                            <option value="">همه مشتریان</option>
-                            @if (persons != null)
-                            {
-                                foreach (var p in persons)
-                                {
-                                    <option value="@p.Id">@p.PersonName</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <div class="mb-3" id="categoryFilter" style="display:none;">
-                        <label class="form-label-compact">دسته‌بندی</label>
-                        <select name="CategoryId" class="form-select form-select-sm">
-                            <option value="">همه دسته‌بندی‌ها</option>
-                            @if (categories != null)
-                            {
-                                foreach (var c in categories)
-                                {
-                                    <option value="@c.Id">@c.Name</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <div class="mb-3" id="productFilter" style="display:none;">
-                        <label class="form-label-compact">محصول</label>
-                        <select name="ProductId" class="form-select form-select-sm">
-                            <option value="">همه محصولات</option>
-                            @if (products != null)
-                            {
-                                foreach (var p in products)
-                                {
-                                    <option value="@p.Id">@p.Name</option>
-                                }
-                            }
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
-                        <i class="bi bi-file-earmark-pdf"></i> تولید گزارش PDF
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header-compact">
-                <span class="icon-badge icon-badge-teal"><i class="bi bi-info-circle"></i></span>
-                <span class="header-title">راهنمای گزارشات</span>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card bg-white border h-100">
-                            <div class="card-body text-center p-3">
-                                <div class="stat-icon mx-auto mb-2" style="background:#eef0ff;color:var(--primary-color);width:40px;height:40px;">
-                                    <i class="bi bi-receipt-cutoff"></i>
-                                </div>
-                                <h6 class="fw-bold mb-1">گزارش فاکتورها</h6>
-                                <p class="text-muted small mb-0">لیست فاکتورها با فیلتر تاریخ و مشتری. شامل جزئیات و مبالغ</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-white border h-100">
-                            <div class="card-body text-center p-3">
-                                <div class="stat-icon mx-auto mb-2" style="background:#e6faf7;color:var(--success-color);width:40px;height:40px;">
-                                    <i class="bi bi-graph-up"></i>
-                                </div>
-                                <h6 class="fw-bold mb-1">گزارش فروش</h6>
-                                <p class="text-muted small mb-0">خلاصه فروش بازه زمانی. تعداد فاکتور، مبلغ کل و آمار</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-white border h-100">
-                            <div class="card-body text-center p-3">
-                                <div class="stat-icon mx-auto mb-2" style="background:#fff7e6;color:var(--warning-color);width:40px;height:40px;">
-                                    <i class="bi bi-box"></i>
-                                </div>
-                                <h6 class="fw-bold mb-1">گزارش محصولات</h6>
-                                <p class="text-muted small mb-0">لیست محصولات با فیلتر دسته‌بندی. شامل قیمت‌های فعال</p>
-                            </div>
-                        </div>
-                    </div>
+<!-- Report Type Selection Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm report-type-card h-100" data-type="sales_trend" onclick="selectReportType(this)">
+            <div class="card-body text-center p-3">
+                <div class="stat-icon mx-auto mb-2" style="background:linear-gradient(135deg,#4361ee,#3a86ff);color:#fff;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-graph-up" style="font-size:1.3rem"></i>
                 </div>
+                <h6 class="fw-bold mb-1">روند فروش</h6>
+                <p class="text-muted small mb-0">نمودار روند فروش بر اساس زمان</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm report-type-card h-100" data-type="category_distribution" onclick="selectReportType(this)">
+            <div class="card-body text-center p-3">
+                <div class="stat-icon mx-auto mb-2" style="background:linear-gradient(135deg,#2ec4b6,#0ead8c);color:#fff;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-pie-chart" style="font-size:1.3rem"></i>
+                </div>
+                <h6 class="fw-bold mb-1">توزیع دسته‌بندی</h6>
+                <p class="text-muted small mb-0">سهم هر دسته‌بندی از فروش</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm report-type-card h-100" data-type="product_performance" onclick="selectReportType(this)">
+            <div class="card-body text-center p-3">
+                <div class="stat-icon mx-auto mb-2" style="background:linear-gradient(135deg,#ff9f1c,#e8890c);color:#fff;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-trophy" style="font-size:1.3rem"></i>
+                </div>
+                <h6 class="fw-bold mb-1">عملکرد محصولات</h6>
+                <p class="text-muted small mb-0">مقایسه فروش محصولات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm report-type-card h-100" data-type="customer_analysis" onclick="selectReportType(this)">
+            <div class="card-body text-center p-3">
+                <div class="stat-icon mx-auto mb-2" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-people" style="font-size:1.3rem"></i>
+                </div>
+                <h6 class="fw-bold mb-1">تحلیل مشتریان</h6>
+                <p class="text-muted small mb-0">مقایسه خرید مشتریان</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="card border-0 shadow-sm report-type-card h-100" data-type="factor_statistics" onclick="selectReportType(this)">
+            <div class="card-body text-center p-3">
+                <div class="stat-icon mx-auto mb-2" style="background:linear-gradient(135deg,#e71d36,#c4112c);color:#fff;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi bi-receipt-cutoff" style="font-size:1.3rem"></i>
+                </div>
+                <h6 class="fw-bold mb-1">آمار فاکتورها</h6>
+                <p class="text-muted small mb-0">توزیع فاکتورها بر اساس مبلغ</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Filters Panel -->
+<div class="card border-0 shadow-sm mb-3" id="filterPanel">
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-blue"><i class="bi bi-funnel"></i></span>
+        <span class="header-title">فیلتر و تنظیمات</span>
+        <button class="btn btn-primary btn-sm me-auto" onclick="loadReport()">
+            <i class="bi bi-bar-chart-line"></i> تولید گزارش
+        </button>
+    </div>
+    <div class="card-body p-3">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label-compact">از تاریخ (شمسی)</label>
+                <input type="text" id="fromDate" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/01/01" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label-compact">تا تاریخ (شمسی)</label>
+                <input type="text" id="toDate" class="form-control form-control-sm persian-datepicker" placeholder="مثال: 1403/12/29" autocomplete="off" />
+            </div>
+            <div class="col-md-3" id="timeGroupFilter">
+                <label class="form-label-compact">گروه‌بندی زمانی</label>
+                <select id="timeGroup" class="form-select form-select-sm">
+                    <option value="monthly">ماهانه</option>
+                    <option value="daily">روزانه</option>
+                </select>
+            </div>
+            <div class="col-md-3" id="topCountFilter">
+                <label class="form-label-compact">تعداد برتر</label>
+                <select id="topCount" class="form-select form-select-sm">
+                    <option value="5">۵ مورد</option>
+                    <option value="10" selected>۱۰ مورد</option>
+                    <option value="15">۱۵ مورد</option>
+                    <option value="20">۲۰ مورد</option>
+                </select>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
+            <div class="col-md-3">
+                <label class="form-label-compact">نوع نمودار</label>
+                <select id="chartType" class="form-select form-select-sm">
+                    <option value="bar">ستونی</option>
+                    <option value="line">خطی</option>
+                    <option value="pie">دایره‌ای</option>
+                    <option value="doughnut">حلقه‌ای</option>
+                    <option value="radar">راداری</option>
+                    <option value="polarArea">قطبی</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards (shown after report generation) -->
+<div class="row g-3 mb-3" id="summaryCards" style="display:none">
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">تعداد کل</div>
+            <div class="fw-bold text-primary" id="summaryTotalCount" style="font-size:1.3rem">-</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">مبلغ کل</div>
+            <div class="fw-bold text-success" id="summaryTotalAmount" style="font-size:1.3rem">-</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">میانگین</div>
+            <div class="fw-bold text-info" id="summaryAvgAmount" style="font-size:1.3rem">-</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-0 shadow-sm text-center p-3">
+            <div class="text-muted small">بیشترین</div>
+            <div class="fw-bold text-warning" id="summaryMaxAmount" style="font-size:1.3rem">-</div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Area -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-teal"><i class="bi bi-bar-chart-line"></i></span>
+        <span class="header-title" id="chartTitle">نمودار آماری</span>
+    </div>
+    <div class="card-body p-3">
+        <div id="chartPlaceholder" class="text-center py-5">
+            <i class="bi bi-bar-chart text-muted" style="font-size:4rem;"></i>
+            <h5 class="mt-3 text-muted">نوع گزارش را انتخاب کنید</h5>
+            <p class="text-muted small">یکی از کارت‌های بالا را انتخاب کرده و روی «تولید گزارش» کلیک کنید</p>
+        </div>
+        <div id="chartContainer" style="display:none; position:relative; height:400px;">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="card border-0 shadow-sm" id="dataTableCard" style="display:none">
+    <div class="card-header-compact">
+        <span class="icon-badge icon-badge-purple"><i class="bi bi-table"></i></span>
+        <span class="header-title">جدول داده‌ها</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0" id="dataTable" style="font-size:0.85rem">
+                <thead id="dataTableHead" class="table-light"></thead>
+                <tbody id="dataTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .report-type-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent !important;
+    }
+    .report-type-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: #4361ee !important;
+    }
+    .report-type-card.selected {
+        border-color: #4361ee !important;
+        background: #f0efff;
+    }
+    .report-type-card.selected .stat-icon {
+        transform: scale(1.1);
+    }
+</style>
 
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
-    $('#reportType').change(function() {
-        var type = $(this).val();
-        $('#personFilter').hide();
-        $('#categoryFilter').hide();
-        $('#productFilter').hide();
+    var currentReportType = 'sales_trend';
+    var mainChart = null;
 
-        if (type === 'factors' || type === 'sales') {
-            $('#personFilter').show();
-        } else if (type === 'products') {
-            $('#categoryFilter').show();
-            $('#productFilter').show();
+    function selectReportType(el) {
+        document.querySelectorAll('.report-type-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        currentReportType = el.getAttribute('data-type');
+
+        // Show/hide filters based on type
+        var showTimeGroup = (currentReportType === 'sales_trend');
+        var showTopCount = (currentReportType === 'product_performance' || currentReportType === 'customer_analysis');
+        document.getElementById('timeGroupFilter').style.display = showTimeGroup ? '' : 'none';
+        document.getElementById('topCountFilter').style.display = showTopCount ? '' : 'none';
+
+        // Auto-set chart type
+        if (currentReportType === 'category_distribution') {
+            document.getElementById('chartType').value = 'doughnut';
+        } else if (currentReportType === 'sales_trend') {
+            document.getElementById('chartType').value = 'line';
+        } else if (currentReportType === 'factor_statistics') {
+            document.getElementById('chartType').value = 'bar';
         }
-    });
+    }
 
-    // Re-init datepickers after partial load
-    setTimeout(function() { initPersianDatepickers(); }, 200);
+    function loadReport() {
+        var params = {
+            ReportType: currentReportType,
+            FromDateJalali: document.getElementById('fromDate').value,
+            ToDateJalali: document.getElementById('toDate').value,
+            TimeGroup: document.getElementById('timeGroup').value,
+            TopCount: parseInt(document.getElementById('topCount').value),
+            ChartType: document.getElementById('chartType').value
+        };
+
+        var queryString = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+
+        fetch('/Report/GetData?' + queryString)
+            .then(r => r.json())
+            .then(data => {
+                renderChart(data, params.ChartType);
+                renderTable(data);
+                renderSummary(data);
+            })
+            .catch(err => {
+                console.error('Error loading report:', err);
+            });
+    }
+
+    function renderChart(data, chartType) {
+        document.getElementById('chartPlaceholder').style.display = 'none';
+        document.getElementById('chartContainer').style.display = 'block';
+
+        if (mainChart) {
+            mainChart.destroy();
+        }
+
+        var ctx = document.getElementById('mainChart').getContext('2d');
+        var isPie = (chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea');
+
+        var datasets = data.datasets.map(function(ds, idx) {
+            var datasetConfig = {
+                label: ds.label,
+                data: ds.data
+            };
+
+            if (isPie) {
+                var baseColors = [
+                    'rgba(67, 97, 238, 0.8)', 'rgba(46, 196, 182, 0.8)', 'rgba(255, 159, 28, 0.8)',
+                    'rgba(231, 29, 54, 0.8)', 'rgba(124, 58, 237, 0.8)', 'rgba(236, 72, 153, 0.8)',
+                    'rgba(58, 134, 255, 0.8)', 'rgba(14, 173, 140, 0.8)', 'rgba(255, 193, 7, 0.8)',
+                    'rgba(108, 117, 125, 0.8)', 'rgba(52, 152, 219, 0.8)', 'rgba(46, 204, 113, 0.8)',
+                    'rgba(155, 89, 182, 0.8)', 'rgba(241, 196, 15, 0.8)', 'rgba(230, 126, 34, 0.8)',
+                    'rgba(149, 165, 166, 0.8)', 'rgba(192, 57, 43, 0.8)', 'rgba(22, 160, 133, 0.8)',
+                    'rgba(44, 62, 80, 0.8)', 'rgba(127, 140, 141, 0.8)'
+                ];
+                datasetConfig.backgroundColor = baseColors.slice(0, data.labels.length);
+                datasetConfig.borderColor = '#fff';
+                datasetConfig.borderWidth = 2;
+            } else {
+                var colors = ['#4361ee', '#2ec4b6', '#ff9f1c', '#e71d36', '#7c3aed', '#ec4899'];
+                var color = ds.color || colors[idx % colors.length];
+                datasetConfig.backgroundColor = color + '33';
+                datasetConfig.borderColor = color;
+                datasetConfig.borderWidth = 2;
+
+                if (chartType === 'line') {
+                    datasetConfig.fill = true;
+                    datasetConfig.tension = 0.4;
+                    datasetConfig.pointRadius = 4;
+                    datasetConfig.pointHoverRadius = 6;
+                }
+
+                if (chartType === 'bar') {
+                    datasetConfig.borderRadius = 6;
+                    datasetConfig.borderSkipped = false;
+                }
+            }
+
+            return datasetConfig;
+        });
+
+        var chartConfig = {
+            type: chartType,
+            data: {
+                labels: data.labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: isPie ? 'right' : 'top',
+                        labels: {
+                            font: { family: 'Vazirmatn', size: 12 },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        rtl: true,
+                        textDirection: 'rtl',
+                        titleFont: { family: 'Vazirmatn' },
+                        bodyFont: { family: 'Vazirmatn' },
+                        callbacks: {
+                            label: function(context) {
+                                var value = context.raw;
+                                if (value >= 1000000) {
+                                    return context.dataset.label + ': ' + (value / 1000000).toFixed(1) + ' M';
+                                }
+                                return context.dataset.label + ': ' + value.toLocaleString('fa-IR');
+                            }
+                        }
+                    }
+                },
+                scales: isPie ? {} : {
+                    x: {
+                        ticks: { font: { family: 'Vazirmatn', size: 11 } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: {
+                            font: { family: 'Vazirmatn', size: 11 },
+                            callback: function(value) {
+                                if (value >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                                if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+                                return value;
+                            }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    }
+                }
+            }
+        };
+
+        mainChart = new Chart(ctx, chartConfig);
+
+        // Update title
+        var titles = {
+            'sales_trend': 'روند فروش',
+            'category_distribution': 'توزیع دسته‌بندی فروش',
+            'product_performance': 'عملکرد محصولات',
+            'customer_analysis': 'تحلیل مشتریان',
+            'factor_statistics': 'توزیع آماری فاکتورها'
+        };
+        document.getElementById('chartTitle').textContent = titles[currentReportType] || 'نمودار آماری';
+    }
+
+    function renderTable(data) {
+        document.getElementById('dataTableCard').style.display = '';
+
+        var thead = '<tr><th>#</th>';
+        thead += '<th>عنوان</th>';
+        data.datasets.forEach(function(ds) {
+            thead += '<th>' + ds.label + '</th>';
+        });
+        thead += '</tr>';
+        document.getElementById('dataTableHead').innerHTML = thead;
+
+        var tbody = '';
+        data.labels.forEach(function(label, i) {
+            tbody += '<tr><td>' + (i + 1) + '</td>';
+            tbody += '<td>' + label + '</td>';
+            data.datasets.forEach(function(ds) {
+                var val = ds.data[i];
+                if (val >= 1000000) {
+                    tbody += '<td>' + (val / 1000000).toFixed(1) + ' M</td>';
+                } else {
+                    tbody += '<td>' + val.toLocaleString('fa-IR') + '</td>';
+                }
+            });
+            tbody += '</tr>';
+        });
+        document.getElementById('dataTableBody').innerHTML = tbody;
+    }
+
+    function renderSummary(data) {
+        if (data.summary) {
+            document.getElementById('summaryCards').style.display = '';
+            document.getElementById('summaryTotalCount').textContent = data.summary.totalCount.toLocaleString('fa-IR');
+            document.getElementById('summaryTotalAmount').textContent = formatAmount(data.summary.totalAmount);
+            document.getElementById('summaryAvgAmount').textContent = formatAmount(data.summary.averageAmount);
+            document.getElementById('summaryMaxAmount').textContent = formatAmount(data.summary.maxAmount);
+        } else {
+            document.getElementById('summaryCards').style.display = 'none';
+        }
+    }
+
+    function formatAmount(val) {
+        if (val >= 1000000000) return (val / 1000000000).toFixed(1) + ' B';
+        if (val >= 1000000) return (val / 1000000).toFixed(1) + ' M';
+        if (val >= 1000) return (val / 1000).toFixed(0) + ' K';
+        return val.toLocaleString('fa-IR');
+    }
+
+    // Initialize - select first card
+    document.addEventListener('DOMContentLoaded', function() {
+        var firstCard = document.querySelector('.report-type-card');
+        if (firstCard) selectReportType(firstCard);
+        setTimeout(function() { initPersianDatepickers(); }, 300);
+    });
 </script>
 }

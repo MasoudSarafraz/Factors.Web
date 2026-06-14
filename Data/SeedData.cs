@@ -81,9 +81,9 @@ public static class SeedData
             new() { Name = "Factor.Delete", DisplayName = "حذف فاکتور", Category = "فاکتورها", Description = "حذف فاکتور از سیستم" },
             new() { Name = "Factor.Print", DisplayName = "چاپ فاکتور", Category = "فاکتورها", Description = "چاپ فاکتور به صورت PDF یا Word" },
 
-            // ── گزارشات PDF ──
-            new() { Name = "Report.View", DisplayName = "مشاهده گزارشات PDF", Category = "گزارشات PDF", Description = "دسترسی به صفحه فیلتر گزارشات" },
-            new() { Name = "Report.Generate", DisplayName = "تولید گزارش PDF", Category = "گزارشات PDF", Description = "تولید فایل PDF گزارش" },
+            // ── گزارش‌ساز آماری ──
+            new() { Name = "Report.View", DisplayName = "مشاهده گزارش‌ساز آماری", Category = "گزارش‌ساز آماری", Description = "دسترسی به گزارش‌ساز آماری با نمودارها" },
+            new() { Name = "Report.Generate", DisplayName = "تولید گزارش آماری", Category = "گزارش‌ساز آماری", Description = "تولید گزارش و نمودارهای آماری" },
 
             // ── قالب‌های گزارش ──
             new() { Name = "ReportTemplate.View", DisplayName = "مشاهده قالب‌های گزارش", Category = "قالب‌های گزارش", Description = "مشاهده لیست قالب‌های Word" },

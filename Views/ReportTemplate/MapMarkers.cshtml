@@ -1,12 +1,11 @@
-@model Factors.Web.Models.ViewModels.MarkerMappingViewModel
+@model Factors.Web.Models.ViewModels.TemplatePreviewViewModel
 @using Factors.Web.Models.Entities
 @using Factors.Web.Models.ViewModels
 @{
     ViewData["Title"] = $"نقشه‌برداری مارکرها - {Model.TemplateName}";
-    var totalMappable = Model.Groups.SelectMany(g =>
-        g.IsList ? g.ChildMarkers : (IEnumerable<MarkerMappingItem>)new[] { g.MainMarker }).Count();
-    var totalMapped = Model.Groups.SelectMany(g =>
-        g.IsList ? g.ChildMarkers : (IEnumerable<MarkerMappingItem>)new[] { g.MainMarker }).Count(m => m.IsMapped);
+
+    var totalMappable = Model.Markers.Count(m => m.DataType != MarkerDataType.List);
+    var totalMapped = Model.Markers.Count(m => m.IsMapped && m.DataType != MarkerDataType.List);
 
     var typeInfo = Model.TemplateType switch
     {
@@ -16,212 +15,321 @@
         ReportTemplateType.PersonList => ("اشخاص", "bi-people", "bg-warning"),
         _ => ("سفارشی", "bi-gear", "bg-secondary")
     };
+
+    var mappingPercent = totalMappable > 0 ? (int)Math.Round((double)totalMapped / totalMappable * 100) : 100;
 }
 
+<form id="antiForgeryForm" style="display:none;">@Html.AntiForgeryToken()</form>
+
 <div class="page-header">
-    <h4><i class="bi bi-link-45deg"></i> نقشه‌برداری مارکرها</h4>
+    <h4><i class="bi bi-link-45deg"></i> نقشه‌برداری ویژوال مارکرها</h4>
     <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-right"></i> بازگشت
         </a>
+        <button class="btn btn-primary btn-sm" onclick="saveAllMappings()" id="saveBtn">
+            <i class="bi bi-check-lg"></i> ذخیره اتصال‌ها
+        </button>
     </div>
 </div>
 
+<!-- Template Info Bar -->
 <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header-compact">
-        <span class="icon-badge icon-badge-blue"><i class="bi bi-file-earmark-word"></i></span>
-        <span class="header-title">@Model.TemplateName</span>
-        <span class="badge @typeInfo.Item3" style="font-size:0.7rem"><i class="bi @typeInfo.Item2"></i> @typeInfo.Item1</span>
-        <span class="badge bg-info" style="font-size:0.7rem">@totalMappable مارکر قابل اتصال</span>
-        <span class="badge bg-success" style="font-size:0.7rem">@totalMapped نقشه‌برداری شده</span>
+    <div class="card-body p-2 px-3">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-2">
+                <span class="icon-badge icon-badge-blue"><i class="bi bi-file-earmark-word"></i></span>
+                <strong>@Model.TemplateName</strong>
+            </div>
+            <span class="badge @typeInfo.Item3" style="font-size:0.7rem"><i class="bi @typeInfo.Item2"></i> @typeInfo.Item1</span>
+            <span class="badge bg-info" style="font-size:0.7rem">@totalMappable مارکر قابل اتصال</span>
+            <span class="badge bg-success" style="font-size:0.7rem">@totalMapped متصل شده</span>
+            <!-- Progress Bar -->
+            <div class="d-flex align-items-center gap-2 me-auto">
+                <div class="progress" style="width:120px;height:8px;">
+                    <div class="progress-bar @(mappingPercent == 100 ? "bg-success" : "bg-primary")" style="width:@mappingPercent%"></div>
+                </div>
+                <span class="small text-muted">@mappingPercent%</span>
+            </div>
+        </div>
     </div>
 </div>
 
-<form asp-action="MapMarkers" method="post" id="mappingForm">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="TemplateId" value="@Model.TemplateId" />
-
-    @{
-        int idx = 0;
-    }
-
-    @foreach (var group in Model.Groups)
-    {
-        if (group.IsList)
-        {
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header-compact" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="icon-badge icon-badge-sm icon-badge-teal"><i class="bi bi-list-ul"></i></span>
-                        <span class="badge bg-success" style="font-size:0.7rem">لیستی</span>
-                        <code dir="ltr">{@group.MainMarker.MarkerName}</code>
-                        <span class="text-muted small">— جدول با @group.ChildMarkers.Count ستون مارکر</span>
-                        <span class="badge bg-light text-dark me-auto" style="font-size:0.7rem">
-                            <i class="bi bi-info-circle"></i> ساختاری — نیازی به اتصال ندارد
-                        </span>
+<div class="row g-3">
+    <!-- Document Preview Panel -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header-compact">
+                <span class="icon-badge icon-badge-teal"><i class="bi bi-file-earmark-text"></i></span>
+                <span class="header-title">پیش‌نمایش سند</span>
+                <span class="text-muted small me-auto">روی مارکرها کلیک کنید تا متصل شوید</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="document-paper-container">
+                    <div class="document-paper">
+                        @Html.Raw(Model.HtmlContent)
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table-compact mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:30px" class="text-center">#</th>
-                                <th style="width:200px">مارکر</th>
-                                <th style="width:180px">منبع داده</th>
-                                <th>پراپرتی</th>
-                                <th style="width:50px" class="text-center">وضعیت</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var child in group.ChildMarkers)
-                            {
-                                <tr>
-                                    <td class="text-center text-muted small">@(idx + 1)</td>
-                                    <td>
-                                        <input type="hidden" name="Mappings[@idx].MarkerId" value="@child.MarkerId" />
-                                        <div class="d-flex align-items-center gap-1">
-                                            <i class="bi bi-arrow-return-left text-muted" style="font-size:0.75rem"></i>
-                                            <code dir="ltr">{@child.MarkerName}</code>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <select name="Mappings[@idx].DataSource" class="form-select form-select-sm"
-                                                data-idx="@idx" onchange="onDataSourceChange(this)">
-                                            <option value="0" selected="@(child.DataSource == MarkerDataSource.Factor)">فاکتور</option>
-                                            <option value="1" selected="@(child.DataSource == MarkerDataSource.FactorItem)">آیتم فاکتور</option>
-                                            <option value="2" selected="@(child.DataSource == MarkerDataSource.Person)">مشتری</option>
-                                            <option value="3" selected="@(child.DataSource == MarkerDataSource.Product)">محصول</option>
-                                            <option value="4" selected="@(child.DataSource == MarkerDataSource.ProductCategory)">دسته‌بندی</option>
-                                            <option value="5" selected="@(child.DataSource == MarkerDataSource.ProductPack)">بسته</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select name="Mappings[@idx].PropertyPath" class="form-select form-select-sm property-select"
-                                                id="prop_@idx" data-current="@child.PropertyPath">
-                                            <option value="">-- انتخاب پراپرتی --</option>
-                                            @if (child.AvailableProperties != null)
-                                            {
-                                                var currentGroup = "";
-                                                foreach (var prop in child.AvailableProperties)
-                                                {
-                                                    if (prop.Group != currentGroup)
-                                                    {
-                                                        if (currentGroup != "")
-                                                        {
-                                                            @:</optgroup>
-                                                        }
-                                                        currentGroup = prop.Group;
-                                                        @:<optgroup label="@prop.Group">
-                                                    }
-                                                    <option value="@prop.Value" selected="@(child.PropertyPath == prop.Value)">
-                                                        @prop.Label
-                                                    </option>
-                                                }
-                                                if (currentGroup != "")
-                                                {
-                                                    @:</optgroup>
-                                                }
-                                            }
-                                        </select>
-                                    </td>
-                                    <td class="text-center">
-                                        @if (child.IsMapped)
-                                        {
-                                            <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning"><i class="bi bi-exclamation"></i></span>
-                                        }
-                                    </td>
-                                </tr>
-                                idx++;
-                            }
-                        </tbody>
-                    </table>
-                </div>
             </div>
-        }
-        else
-        {
-            <div class="card border-0 shadow-sm mb-2">
-                <div class="card-body py-2 px-3">
-                    <div class="row align-items-center g-2">
-                        <div class="col-md-3">
-                            <input type="hidden" name="Mappings[@idx].MarkerId" value="@group.MainMarker.MarkerId" />
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-info" style="font-size:0.7rem"><i class="bi bi-dot"></i> تکی</span>
-                                <code dir="ltr">{@group.MainMarker.MarkerName}</code>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <select name="Mappings[@idx].DataSource" class="form-select form-select-sm"
-                                    data-idx="@idx" onchange="onDataSourceChange(this)">
-                                <option value="0" selected="@(group.MainMarker.DataSource == MarkerDataSource.Factor)">فاکتور</option>
-                                <option value="1" selected="@(group.MainMarker.DataSource == MarkerDataSource.FactorItem)">آیتم فاکتور</option>
-                                <option value="2" selected="@(group.MainMarker.DataSource == MarkerDataSource.Person)">مشتری</option>
-                                <option value="3" selected="@(group.MainMarker.DataSource == MarkerDataSource.Product)">محصول</option>
-                                <option value="4" selected="@(group.MainMarker.DataSource == MarkerDataSource.ProductCategory)">دسته‌بندی</option>
-                                <option value="5" selected="@(group.MainMarker.DataSource == MarkerDataSource.ProductPack)">بسته</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <select name="Mappings[@idx].PropertyPath" class="form-select form-select-sm property-select"
-                                    id="prop_@idx" data-current="@group.MainMarker.PropertyPath">
-                                <option value="">-- انتخاب پراپرتی --</option>
-                                @if (group.MainMarker.AvailableProperties != null)
+        </div>
+    </div>
+
+    <!-- Marker Connection Panel -->
+    <div class="col-lg-4">
+        <!-- Active Marker Editor -->
+        <div class="card border-0 shadow-sm mb-3" id="markerEditor" style="display:none">
+            <div class="card-header-compact" style="background:linear-gradient(135deg,#4361ee22,#3a86ff22)">
+                <span class="icon-badge icon-badge-blue"><i class="bi bi-link-45deg"></i></span>
+                <span class="header-title" id="editorTitle">اتصال مارکر</span>
+                <button class="btn btn-sm btn-outline-secondary me-auto" onclick="closeEditor()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="card-body p-3">
+                <input type="hidden" id="editMarkerId" />
+                <input type="hidden" id="editMarkerName" />
+
+                <div class="mb-3">
+                    <label class="form-label-compact fw-bold">مارکر</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <code dir="ltr" id="editMarkerCode" class="fs-6"></code>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-compact fw-bold">منبع داده</label>
+                    <select id="editDataSource" class="form-select form-select-sm" onchange="onEditorDataSourceChange()">
+                        <option value="0">فاکتور</option>
+                        <option value="1">آیتم فاکتور</option>
+                        <option value="2">مشتری</option>
+                        <option value="3">محصول</option>
+                        <option value="4">دسته‌بندی</option>
+                        <option value="5">بسته</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-compact fw-bold">پراپرتی</label>
+                    <select id="editProperty" class="form-select form-select-sm">
+                        <option value="">-- انتخاب پراپرتی --</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary btn-sm w-100" onclick="applyMapping()">
+                    <i class="bi bi-link"></i> اتصال
+                </button>
+            </div>
+        </div>
+
+        <!-- Marker List -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header-compact">
+                <span class="icon-badge icon-badge-purple"><i class="bi bi-list-ul"></i></span>
+                <span class="header-title">لیست مارکرها</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="markerList">
+                    @foreach (var marker in Model.Markers)
+                    {
+                        var isListMarker = marker.DataType == MarkerDataType.List;
+                        <div class="list-group-item d-flex align-items-center py-2 px-3 marker-list-item"
+                             data-marker-name="@marker.MarkerName"
+                             data-marker-id="@marker.MarkerId"
+                             onclick="focusMarker('@marker.MarkerName')">
+                            <div class="d-flex align-items-center gap-2 flex-fill">
+                                @if (isListMarker)
                                 {
-                                    var currentGroup = "";
-                                    foreach (var prop in group.MainMarker.AvailableProperties)
-                                    {
-                                        if (prop.Group != currentGroup)
-                                        {
-                                            if (currentGroup != "")
-                                            {
-                                                @:</optgroup>
-                                            }
-                                            currentGroup = prop.Group;
-                                            @:<optgroup label="@prop.Group">
-                                        }
-                                        <option value="@prop.Value" selected="@(group.MainMarker.PropertyPath == prop.Value)">
-                                            @prop.Label
-                                        </option>
-                                    }
-                                    if (currentGroup != "")
-                                    {
-                                        @:</optgroup>
-                                    }
+                                    <span class="badge bg-success" style="font-size:0.65rem"><i class="bi bi-list-ul"></i></span>
                                 }
-                            </select>
-                        </div>
-                        <div class="col-md-1 text-center">
-                            @if (group.MainMarker.IsMapped)
+                                else
+                                {
+                                    <span class="badge @(marker.IsMapped ? "bg-primary" : "bg-warning")" style="font-size:0.65rem">
+                                        <i class="bi @(marker.IsMapped ? "bi-check-lg" : "bi-exclamation")"></i>
+                                    </span>
+                                }
+                                <code dir="ltr" style="font-size:0.82rem">{@marker.MarkerName}</code>
+                            </div>
+                            @if (isListMarker)
                             {
-                                <span class="badge bg-success"><i class="bi bi-check-lg"></i></span>
+                                <span class="badge bg-light text-dark" style="font-size:0.65rem">ساختاری</span>
+                            }
+                            else if (marker.IsMapped)
+                            {
+                                <span class="text-success small" style="font-size:0.7rem">
+                                    <i class="bi bi-check-circle"></i>
+                                    @marker.PropertyPath
+                                </span>
                             }
                             else
                             {
-                                <span class="badge bg-warning"><i class="bi bi-exclamation"></i></span>
+                                <span class="text-warning small" style="font-size:0.7rem">
+                                    <i class="bi bi-arrow-left-circle"></i> متصل نشده
+                                </span>
                             }
                         </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body p-3">
+                <div class="d-flex gap-3 flex-wrap small">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="marker-badge mapped" style="cursor:default">{نمونه}</span>
+                        <span class="text-muted">متصل شده</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="marker-badge unmapped" style="cursor:default">{نمونه}</span>
+                        <span class="text-muted">متصل نشده</span>
                     </div>
                 </div>
             </div>
-            idx++;
-        }
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Document Paper Style */
+    .document-paper-container {
+        background: #e8e8e8;
+        padding: 20px;
+        max-height: 70vh;
+        overflow-y: auto;
     }
 
-    <div class="mt-3 d-flex justify-content-between align-items-center">
-        <span class="text-muted small">
-            <i class="bi bi-info-circle"></i>
-            مارکرهای <span class="badge bg-success">لیستی</span> فقط ساختاری هستند و سطرهای جدول زیرشان تکرار می‌شود.
-            مارکرهای <span class="badge bg-info">تکی</span> و مارکرهای داخل جدول باید به پراپرتی‌ها متصل شوند.
-        </span>
-        <button type="submit" class="btn btn-primary btn-sm px-4">
-            <i class="bi bi-check-lg"></i> ذخیره نقشه‌برداری
-        </button>
-    </div>
-</form>
+    .document-paper {
+        background: #fff;
+        max-width: 750px;
+        margin: 0 auto;
+        padding: 40px 50px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+        border-radius: 2px;
+        position: relative;
+        min-height: 500px;
+        font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+        font-size: 13px;
+        line-height: 1.8;
+        direction: rtl;
+    }
+
+    /* Paper line effect */
+    .document-paper::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 50px;
+        bottom: 0;
+        width: 1px;
+        background: rgba(231, 76, 60, 0.15);
+    }
+
+    .doc-paragraph {
+        margin-bottom: 6px;
+        padding: 2px 4px;
+        min-height: 1.4em;
+    }
+
+    .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 12px;
+    }
+
+    .doc-table td, .doc-table th {
+        border: 1px solid #ddd;
+        padding: 6px 10px;
+        text-align: right;
+        vertical-align: top;
+    }
+
+    .doc-table tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    /* Marker Badges */
+    .marker-badge {
+        display: inline;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        direction: ltr;
+        unicode-bidi: bidi-override;
+        white-space: nowrap;
+    }
+
+    .marker-badge.mapped {
+        background: rgba(67, 97, 238, 0.15);
+        color: #4361ee;
+        border: 1px solid rgba(67, 97, 238, 0.3);
+    }
+
+    .marker-badge.unmapped {
+        background: rgba(255, 159, 28, 0.2);
+        color: #d97706;
+        border: 1px solid rgba(255, 159, 28, 0.4);
+        animation: pulse-border 2s ease-in-out infinite;
+    }
+
+    .marker-badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .marker-badge.active-marker {
+        outline: 2px solid #4361ee;
+        outline-offset: 2px;
+        animation: highlight 1s ease-in-out;
+    }
+
+    .marker-badge.just-mapped {
+        background: rgba(46, 196, 182, 0.2) !important;
+        color: #0d9488 !important;
+        border-color: rgba(46, 196, 182, 0.4) !important;
+        animation: mapped-flash 0.5s ease;
+    }
+
+    .marker-list-item {
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .marker-list-item:hover {
+        background: #f0f5ff;
+    }
+
+    @keyframes pulse-border {
+        0%, 100% { border-color: rgba(255, 159, 28, 0.4); }
+        50% { border-color: rgba(255, 159, 28, 0.8); }
+    }
+
+    @keyframes highlight {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes mapped-flash {
+        0% { background: rgba(46, 196, 182, 0.5); }
+        100% { background: rgba(67, 97, 238, 0.15); }
+    }
+
+    .document-paper-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .document-paper-container::-webkit-scrollbar-track {
+        background: #ddd;
+    }
+    .document-paper-container::-webkit-scrollbar-thumb {
+        background: #aaa;
+        border-radius: 3px;
+    }
+</style>
 
 @section Scripts {
 <script>
@@ -357,26 +465,174 @@
         ]
     };
 
-    function onDataSourceChange(dsSelect) {
-        var idx = dsSelect.getAttribute('data-idx');
-        var propSelect = document.getElementById('prop_' + idx);
-        if (!propSelect) return;
+    var pendingMappings = {};
 
-        var sourceValue = dsSelect.value;
-        var currentVal = propSelect.getAttribute('data-current');
+    function onMarkerClick(el) {
+        var markerName = el.getAttribute('data-marker');
+        var dataSource = el.getAttribute('data-datasource');
+        var property = el.getAttribute('data-property');
+
+        // Highlight the clicked marker
+        document.querySelectorAll('.marker-badge.active-marker').forEach(b => b.classList.remove('active-marker'));
+        el.classList.add('active-marker');
+
+        // Find marker ID from list
+        var listItem = document.querySelector('.marker-list-item[data-marker-name="' + markerName + '"]');
+        var markerId = listItem ? listItem.getAttribute('data-marker-id') : '0';
+
+        // Show editor panel
+        document.getElementById('markerEditor').style.display = '';
+        document.getElementById('editMarkerId').value = markerId;
+        document.getElementById('editMarkerName').value = markerName;
+        document.getElementById('editMarkerCode').textContent = '{' + markerName + '}';
+        document.getElementById('editorTitle').textContent = 'اتصال: {' + markerName + '}';
+
+        // Set current values
+        document.getElementById('editDataSource').value = dataSource || '0';
+        onEditorDataSourceChange();
+
+        // Set property if exists
+        if (property) {
+            setTimeout(function() {
+                document.getElementById('editProperty').value = property;
+            }, 100);
+        }
+
+        // Scroll to the editor if needed
+        document.getElementById('markerEditor').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function focusMarker(markerName) {
+        var badge = document.querySelector('.marker-badge[data-marker="' + markerName + '"]');
+        if (badge) {
+            document.querySelectorAll('.marker-badge.active-marker').forEach(b => b.classList.remove('active-marker'));
+            badge.classList.add('active-marker');
+            badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Trigger click to open editor
+            onMarkerClick(badge);
+        }
+    }
+
+    function onEditorDataSourceChange() {
+        var sourceValue = document.getElementById('editDataSource').value;
+        var propSelect = document.getElementById('editProperty');
         var groups = propsData[sourceValue] || [];
 
         var html = '<option value="">-- انتخاب پراپرتی --</option>';
         groups.forEach(function(g) {
             html += '<optgroup label="' + g.group + '">';
             g.items.forEach(function(p) {
-                var sel = (p.v === currentVal) ? ' selected' : '';
-                html += '<option value="' + p.v + '"' + sel + '>' + p.l + '</option>';
+                html += '<option value="' + p.v + '">' + p.l + '</option>';
             });
             html += '</optgroup>';
         });
 
         propSelect.innerHTML = html;
+    }
+
+    function applyMapping() {
+        var markerId = parseInt(document.getElementById('editMarkerId').value);
+        var markerName = document.getElementById('editMarkerName').value;
+        var dataSource = parseInt(document.getElementById('editDataSource').value);
+        var propertyPath = document.getElementById('editProperty').value;
+
+        if (!propertyPath) {
+            alert('لطفاً یک پراپرتی انتخاب کنید');
+            return;
+        }
+
+        // Store pending mapping
+        pendingMappings[markerId] = {
+            MarkerId: markerId,
+            DataSource: dataSource,
+            PropertyPath: propertyPath
+        };
+
+        // Update badge visually
+        var badge = document.querySelector('.marker-badge[data-marker="' + markerName + '"]');
+        if (badge) {
+            badge.classList.remove('unmapped');
+            badge.classList.add('just-mapped');
+            badge.setAttribute('data-datasource', dataSource.toString());
+            badge.setAttribute('data-property', propertyPath);
+            setTimeout(function() { badge.classList.remove('just-mapped'); badge.classList.add('mapped'); }, 600);
+        }
+
+        // Update list item
+        var listItem = document.querySelector('.marker-list-item[data-marker-name="' + markerName + '"]');
+        if (listItem) {
+            var badgeEl = listItem.querySelector('.badge.bg-warning, .badge.bg-primary');
+            if (badgeEl) {
+                badgeEl.classList.remove('bg-warning');
+                badgeEl.classList.add('bg-primary');
+                badgeEl.innerHTML = '<i class="bi bi-check-lg"></i>';
+            }
+            var statusEl = listItem.querySelector('.text-warning, .text-success');
+            if (statusEl && statusEl.classList.contains('text-warning')) {
+                statusEl.classList.remove('text-warning');
+                statusEl.classList.add('text-success');
+                statusEl.innerHTML = '<i class="bi bi-check-circle"></i> ' + propertyPath;
+            }
+        }
+
+        // Close editor
+        closeEditor();
+
+        // Flash save button to indicate unsaved changes
+        document.getElementById('saveBtn').classList.add('btn-warning');
+        document.getElementById('saveBtn').classList.remove('btn-primary');
+    }
+
+    function closeEditor() {
+        document.getElementById('markerEditor').style.display = 'none';
+        document.querySelectorAll('.marker-badge.active-marker').forEach(b => b.classList.remove('active-marker'));
+    }
+
+    function saveAllMappings() {
+        var mappingList = Object.values(pendingMappings);
+        if (mappingList.length === 0) {
+            alert('هیچ اتصال جدیدی ثبت نشده است');
+            return;
+        }
+
+        var token = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]').value;
+
+        fetch('/ReportTemplate/SaveMapping', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({
+                TemplateId: @Model.TemplateId,
+                Mappings: mappingList
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                pendingMappings = {};
+                document.getElementById('saveBtn').classList.remove('btn-warning');
+                document.getElementById('saveBtn').classList.add('btn-primary');
+
+                // Show success
+                var alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                alert.style.cssText = 'top:70px;left:20px;z-index:9999;min-width:250px';
+                alert.innerHTML = '<i class="bi bi-check-circle"></i> ' + data.message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                document.body.appendChild(alert);
+                setTimeout(function() { alert.remove(); }, 3000);
+            } else {
+                alert('خطا: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Save error:', err);
+            alert('خطا در ذخیره اتصال‌ها');
+        });
     }
 </script>
 }

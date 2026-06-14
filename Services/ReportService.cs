@@ -2,9 +2,6 @@ using Factors.Web.Data;
 using Factors.Web.Models.Entities;
 using Factors.Web.Models.ViewModels;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace Factors.Web.Services;
 
@@ -15,7 +12,6 @@ public class ReportService : IReportService
     public ReportService(AppDbContext context)
     {
         _context = context;
-        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public DashboardViewModel GetDashboardData()
@@ -83,287 +79,276 @@ public class ReportService : IReportService
 
         dashboard.MonthlySales = monthlySales;
 
+        // Sales by Category
+        var categorySales = factorItemsData
+            .Where(fi => fi.Product != null && fi.Product.Category != null)
+            .GroupBy(fi => fi.Product!.Category!.Name)
+            .Select(g => new CategorySalesViewModel
+            {
+                CategoryName = g.Key,
+                TotalAmount = g.Sum(x => x.Price * x.Qty),
+                TotalQty = g.Sum(x => x.Qty)
+            })
+            .OrderByDescending(x => x.TotalAmount)
+            .ToList();
+        dashboard.CategorySales = categorySales;
+
+        // Daily Sales (last 30 days)
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        var dailySales = factors
+            .Where(f => f.CreateDate >= thirtyDaysAgo)
+            .GroupBy(f => f.CreateDate.Date)
+            .Select(g => new DailySalesViewModel
+            {
+                Date = g.Key,
+                PersianDate = PersianDateService.ToPersian(g.Key),
+                FactorCount = g.Count(),
+                TotalAmount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            })
+            .OrderBy(x => x.Date)
+            .ToList();
+        dashboard.DailySales = dailySales;
+
+        // Top Customers
+        var topCustomers = factors
+            .Where(f => f.Person != null)
+            .GroupBy(f => new { f.PersonId, f.Person!.PersonName })
+            .Select(g => new TopCustomerViewModel
+            {
+                PersonName = g.Key.PersonName,
+                FactorCount = g.Count(),
+                TotalPurchase = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            })
+            .OrderByDescending(x => x.TotalPurchase)
+            .Take(5)
+            .ToList();
+        dashboard.TopCustomers = topCustomers;
+
+        // Person Type Distribution
+        var personTypes = _context.Persons
+            .GroupBy(p => p.IsIndividual)
+            .Select(g => new PersonTypeViewModel
+            {
+                IsIndividual = g.Key,
+                Count = g.Count()
+            })
+            .ToList();
+        dashboard.PersonTypeDistribution = personTypes;
+
         return dashboard;
     }
 
-    public byte[] GenerateFactorReportPdf(FactorViewModel factor)
+    public StatisticalDataResult GetStatisticalData(StatisticalReportQuery query)
     {
-        factor ??= new FactorViewModel();
-        factor.Items ??= new List<FactorItemViewModel>();
+        var result = new StatisticalDataResult();
 
-        var document = Document.Create(container =>
+        switch (query.ReportType)
         {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(1, Unit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
+            case "sales_trend":
+                result = GetSalesTrendData(query);
+                break;
+            case "category_distribution":
+                result = GetCategoryDistributionData(query);
+                break;
+            case "product_performance":
+                result = GetProductPerformanceData(query);
+                break;
+            case "customer_analysis":
+                result = GetCustomerAnalysisData(query);
+                break;
+            case "factor_statistics":
+                result = GetFactorStatisticsData(query);
+                break;
+            default:
+                result.Labels = new List<string>();
+                result.Datasets = new List<ChartDataDataset>();
+                break;
+        }
 
-                page.Header().Element(compose => ComposeHeader(compose, $"فاکتور شماره {factor.Id}"));
-
-                page.Content().Element(compose => ComposeFactorContent(compose, factor));
-
-                page.Footer().AlignCenter().Text(x =>
-                {
-                    x.Span("صفحه ").FontSize(9);
-                    x.CurrentPageNumber().FontSize(9);
-                    x.Span(" از ").FontSize(9);
-                    x.TotalPages().FontSize(9);
-                });
-            });
-        });
-
-        return document.GeneratePdf();
+        return result;
     }
 
-    public byte[] GenerateSalesReportPdf(ReportFilterViewModel filter, List<FactorViewModel> factors)
+    private DateTime? ParseJalaliDate(string? jalali)
     {
-        filter ??= new ReportFilterViewModel();
-        factors ??= new List<FactorViewModel>();
-
-        var fromDateStr = filter.FromDate.HasValue ? PersianDateService.ToPersian(filter.FromDate.Value) : "نامحدود";
-        var toDateStr = filter.ToDate.HasValue ? PersianDateService.ToPersian(filter.ToDate.Value) : "نامحدود";
-        var totalAmount = factors.Sum(f => f.TotalAmount);
-
-        var document = Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(1, Unit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
-
-                page.Header().Element(compose => ComposeHeader(compose, "گزارش فروش"));
-
-                page.Content().Element(compose =>
-                {
-                    compose.Column(column =>
-                    {
-                        column.Spacing(10);
-
-                        // Filter info
-                        column.Item().Row(row =>
-                        {
-                            row.RelativeItem().Text($"از تاریخ: {fromDateStr}");
-                            row.RelativeItem().Text($"تا تاریخ: {toDateStr}");
-                            row.RelativeItem().Text($"تعداد فاکتورها: {factors.Count}");
-                        });
-
-                        column.Item().LineHorizontal(1);
-
-                        // Summary
-                        column.Item().Row(row =>
-                        {
-                            row.RelativeItem().Text($"مبلغ کل فروش: {totalAmount:N0} ریال");
-                        });
-
-                        column.Item().LineHorizontal(1);
-
-                        if (factors.Count > 0)
-                        {
-                            // Factors table
-                            column.Item().Element(compose2 => ComposeFactorsTable(compose2, factors));
-                        }
-                        else
-                        {
-                            column.Item().Text("داده‌ای برای نمایش وجود ندارد").FontSize(12).FontColor(Colors.Grey.Darken1);
-                        }
-                    });
-                });
-
-                page.Footer().AlignCenter().Text(x =>
-                {
-                    x.Span("صفحه ").FontSize(9);
-                    x.CurrentPageNumber().FontSize(9);
-                    x.Span(" از ").FontSize(9);
-                    x.TotalPages().FontSize(9);
-                });
-            });
-        });
-
-        return document.GeneratePdf();
+        if (string.IsNullOrWhiteSpace(jalali)) return null;
+        return PersianDateService.ParsePersianDate(jalali);
     }
 
-    public byte[] GenerateProductReportPdf(ReportFilterViewModel filter, List<ProductViewModel> products)
+    private IQueryable<Factor> ApplyDateFilter(IQueryable<Factor> query, StatisticalReportQuery filter)
     {
-        products ??= new List<ProductViewModel>();
+        var fromDate = ParseJalaliDate(filter.FromDateJalali);
+        var toDate = ParseJalaliDate(filter.ToDateJalali);
 
-        var document = Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(1, Unit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
+        if (fromDate.HasValue)
+            query = query.Where(f => f.CreateDate >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(f => f.CreateDate <= toDate.Value.AddDays(1));
 
-                page.Header().Element(compose => ComposeHeader(compose, "گزارش محصولات"));
-
-                page.Content().Element(compose =>
-                {
-                    compose.Column(column =>
-                    {
-                        column.Spacing(10);
-                        column.Item().Text($"تعداد محصولات: {products.Count}");
-                        column.Item().LineHorizontal(1);
-
-                        if (products.Count > 0)
-                        {
-                            column.Item().Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.ConstantColumn(40);
-                                    columns.RelativeColumn();
-                                    columns.ConstantColumn(80);
-                                    columns.RelativeColumn();
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Element(CellStyle).Text("#");
-                                    header.Cell().Element(CellStyle).Text("نام محصول");
-                                    header.Cell().Element(CellStyle).Text("کد");
-                                    header.Cell().Element(CellStyle).Text("دسته‌بندی");
-                                });
-
-                                for (int i = 0; i < products.Count; i++)
-                                {
-                                    var p = products[i];
-                                    table.Cell().Element(CellStyle).Text((i + 1).ToString());
-                                    table.Cell().Element(CellStyle).Text(p.Name ?? "");
-                                    table.Cell().Element(CellStyle).Text(p.Code ?? "");
-                                    table.Cell().Element(CellStyle).Text(p.CategoryName ?? "");
-                                }
-                            });
-                        }
-                        else
-                        {
-                            column.Item().Text("داده‌ای برای نمایش وجود ندارد").FontSize(12).FontColor(Colors.Grey.Darken1);
-                        }
-                    });
-                });
-            });
-        });
-
-        return document.GeneratePdf();
+        return query;
     }
 
-    private void ComposeHeader(IContainer container, string title)
+    private StatisticalDataResult GetSalesTrendData(StatisticalReportQuery query)
     {
-        container.Row(row =>
+        var factors = ApplyDateFilter(_context.Factors.Include(f => f.FactorItems), query).ToList();
+
+        var grouped = query.TimeGroup switch
         {
-            row.RelativeItem().Column(column =>
+            "daily" => factors.GroupBy(f => f.CreateDate.Date).OrderBy(g => g.Key).Select(g => new
             {
-                column.Item().Text(title ?? "").FontSize(18).Bold().FontColor(Colors.Blue.Darken2);
-                column.Item().Text($"تاریخ: {PersianDateService.Now}").FontSize(9);
-                column.Item().LineHorizontal(2);
-            });
-        });
-    }
+                Label = PersianDateService.ToPersian(g.Key),
+                Count = g.Count(),
+                Amount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            }).ToList(),
+            "monthly" => factors.GroupBy(f => new { f.CreateDate.Year, f.CreateDate.Month }).OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).Select(g => new
+            {
+                Label = $"{g.Key.Year}/{g.Key.Month:00}",
+                Count = g.Count(),
+                Amount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            }).ToList(),
+            _ => factors.GroupBy(f => new { f.CreateDate.Year, f.CreateDate.Month }).OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).Select(g => new
+            {
+                Label = $"{g.Key.Year}/{g.Key.Month:00}",
+                Count = g.Count(),
+                Amount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            }).ToList()
+        };
 
-    private void ComposeFactorContent(IContainer container, FactorViewModel factor)
-    {
-        container.Column(column =>
+        return new StatisticalDataResult
         {
-            column.Spacing(10);
-
-            // Factor info
-            column.Item().Row(row =>
+            Labels = grouped.Select(g => g.Label).ToList(),
+            Datasets = new List<ChartDataDataset>
             {
-                row.RelativeItem().Text($"شماره فاکتور: {factor.Id}");
-                row.RelativeItem().Text($"تاریخ: {factor.PersianCreateDate ?? "-"}");
-                row.RelativeItem().Text($"مشتری: {factor.PersonName ?? "-"}");
-            });
-
-            column.Item().LineHorizontal(1);
-
-            // Items table
-            if (factor.Items != null && factor.Items.Count > 0)
-            {
-                column.Item().Element(compose => ComposeFactorItemsTable(compose, factor.Items));
+                new() { Label = "مبلغ فروش (ریال)", Data = grouped.Select(g => (decimal)g.Amount).ToList(), Color = "#4361ee" },
+                new() { Label = "تعداد فاکتور", Data = grouped.Select(g => (decimal)g.Count).ToList(), Color = "#2ec4b6" }
             }
-            else
-            {
-                column.Item().Text("آیتمی وجود ندارد").FontSize(10).FontColor(Colors.Grey.Darken1);
-            }
-
-            column.Item().LineHorizontal(1);
-
-            // Total
-            column.Item().AlignLeft().Text($"جمع کل: {factor.TotalAmount:N0} ریال").FontSize(14).Bold();
-        });
+        };
     }
 
-    private void ComposeFactorItemsTable(IContainer container, List<FactorItemViewModel> items)
+    private StatisticalDataResult GetCategoryDistributionData(StatisticalReportQuery query)
     {
-        container.Table(table =>
+        var factorItems = _context.FactorItems
+            .Include(fi => fi.Product)
+                .ThenInclude(p => p!.Category)
+            .ToList();
+
+        var grouped = factorItems
+            .Where(fi => fi.Product?.Category != null)
+            .GroupBy(fi => fi.Product!.Category!.Name)
+            .Select(g => new
+            {
+                Label = g.Key,
+                Amount = g.Sum(x => x.Price * x.Qty),
+                Qty = g.Sum(x => x.Qty)
+            })
+            .OrderByDescending(x => x.Amount)
+            .ToList();
+
+        var colors = new[] { "#4361ee", "#2ec4b6", "#ff9f1c", "#e71d36", "#7c3aed", "#ec4899", "#3a86ff", "#0ead8c" };
+
+        return new StatisticalDataResult
         {
-            table.ColumnsDefinition(columns =>
+            Labels = grouped.Select(g => g.Label).ToList(),
+            Datasets = new List<ChartDataDataset>
             {
-                columns.ConstantColumn(40);
-                columns.RelativeColumn();
-                columns.ConstantColumn(60);
-                columns.ConstantColumn(100);
-                columns.ConstantColumn(120);
-            });
-
-            table.Header(header =>
-            {
-                header.Cell().Element(CellStyle).Text("#");
-                header.Cell().Element(CellStyle).Text("نام کالا");
-                header.Cell().Element(CellStyle).Text("تعداد");
-                header.Cell().Element(CellStyle).Text("قیمت واحد");
-                header.Cell().Element(CellStyle).Text("جمع");
-            });
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                table.Cell().Element(CellStyle).Text((i + 1).ToString());
-                table.Cell().Element(CellStyle).Text(item.ProductName ?? "");
-                table.Cell().Element(CellStyle).Text(item.Qty.ToString("N0"));
-                table.Cell().Element(CellStyle).Text(item.Price.ToString("N0"));
-                table.Cell().Element(CellStyle).Text(item.TotalPrice.ToString("N0"));
+                new() { Label = "مبلغ فروش", Data = grouped.Select(g => g.Amount).ToList(), Colors = grouped.Select((_, i) => colors[i % colors.Length]).ToList() }
             }
-        });
+        };
     }
 
-    private void ComposeFactorsTable(IContainer container, List<FactorViewModel> factors)
+    private StatisticalDataResult GetProductPerformanceData(StatisticalReportQuery query)
     {
-        container.Table(table =>
+        var factorItems = _context.FactorItems
+            .Include(fi => fi.Product)
+            .ToList();
+
+        var grouped = factorItems
+            .Where(fi => fi.Product != null)
+            .GroupBy(fi => fi.Product!.Name)
+            .Select(g => new
+            {
+                Label = g.Key,
+                Qty = g.Sum(x => x.Qty),
+                Amount = g.Sum(x => x.Price * x.Qty)
+            })
+            .OrderByDescending(x => x.Amount)
+            .Take(query.TopCount > 0 ? query.TopCount : 10)
+            .ToList();
+
+        return new StatisticalDataResult
         {
-            table.ColumnsDefinition(columns =>
+            Labels = grouped.Select(g => g.Label).ToList(),
+            Datasets = new List<ChartDataDataset>
             {
-                columns.ConstantColumn(40);
-                columns.ConstantColumn(60);
-                columns.RelativeColumn();
-                columns.ConstantColumn(100);
-                columns.ConstantColumn(60);
-            });
-
-            table.Header(header =>
-            {
-                header.Cell().Element(CellStyle).Text("#");
-                header.Cell().Element(CellStyle).Text("شماره");
-                header.Cell().Element(CellStyle).Text("مشتری");
-                header.Cell().Element(CellStyle).Text("مبلغ کل");
-                header.Cell().Element(CellStyle).Text("تاریخ");
-            });
-
-            for (int i = 0; i < factors.Count; i++)
-            {
-                var f = factors[i];
-                table.Cell().Element(CellStyle).Text((i + 1).ToString());
-                table.Cell().Element(CellStyle).Text(f.Id.ToString());
-                table.Cell().Element(CellStyle).Text(f.PersonName ?? "");
-                table.Cell().Element(CellStyle).Text(f.TotalAmount.ToString("N0"));
-                table.Cell().Element(CellStyle).Text(f.PersianCreateDate ?? "");
+                new() { Label = "مبلغ فروش (ریال)", Data = grouped.Select(g => g.Amount).ToList(), Color = "#4361ee" },
+                new() { Label = "تعداد فروش", Data = grouped.Select(g => (decimal)g.Qty).ToList(), Color = "#ff9f1c" }
             }
-        });
+        };
     }
 
-    private static IContainer CellStyle(IContainer container)
+    private StatisticalDataResult GetCustomerAnalysisData(StatisticalReportQuery query)
     {
-        return container.DefaultTextStyle(x => x.FontSize(10)).BorderVertical(1).BorderHorizontal(1).PaddingVertical(5).PaddingHorizontal(5);
+        var factors = ApplyDateFilter(_context.Factors.Include(f => f.Person).Include(f => f.FactorItems), query).ToList();
+
+        var grouped = factors
+            .Where(f => f.Person != null)
+            .GroupBy(f => f.Person!.PersonName)
+            .Select(g => new
+            {
+                Label = g.Key,
+                Count = g.Count(),
+                Amount = g.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0)
+            })
+            .OrderByDescending(x => x.Amount)
+            .Take(query.TopCount > 0 ? query.TopCount : 10)
+            .ToList();
+
+        return new StatisticalDataResult
+        {
+            Labels = grouped.Select(g => g.Label).ToList(),
+            Datasets = new List<ChartDataDataset>
+            {
+                new() { Label = "مجموع خرید (ریال)", Data = grouped.Select(g => g.Amount).ToList(), Color = "#2ec4b6" },
+                new() { Label = "تعداد فاکتور", Data = grouped.Select(g => (decimal)g.Count).ToList(), Color = "#7c3aed" }
+            }
+        };
+    }
+
+    private StatisticalDataResult GetFactorStatisticsData(StatisticalReportQuery query)
+    {
+        var factors = ApplyDateFilter(_context.Factors.Include(f => f.FactorItems), query).ToList();
+
+        var avgAmount = factors.Count > 0 ? factors.Average(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0) : 0;
+        var maxAmount = factors.Count > 0 ? factors.Max(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0) : 0;
+        var minAmount = factors.Count > 0 ? factors.Min(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0) : 0;
+        var totalAmount = factors.Sum(f => f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0);
+
+        // Range distribution
+        var ranges = new List<string> { "0 - 1M", "1M - 5M", "5M - 10M", "10M - 50M", "50M - 100M", "100M+" };
+        var rangeCounts = new List<decimal>
+        {
+            factors.Count(f => (f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0) < 1000000),
+            factors.Count(f => { var a = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0; return a >= 1000000 && a < 5000000; }),
+            factors.Count(f => { var a = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0; return a >= 5000000 && a < 10000000; }),
+            factors.Count(f => { var a = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0; return a >= 10000000 && a < 50000000; }),
+            factors.Count(f => { var a = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0; return a >= 50000000 && a < 100000000; }),
+            factors.Count(f => (f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0) >= 100000000)
+        };
+
+        return new StatisticalDataResult
+        {
+            Labels = ranges,
+            Datasets = new List<ChartDataDataset>
+            {
+                new() { Label = "تعداد فاکتور", Data = rangeCounts, Color = "#4361ee" }
+            },
+            Summary = new StatisticalSummary
+            {
+                TotalCount = factors.Count,
+                TotalAmount = totalAmount,
+                AverageAmount = avgAmount,
+                MaxAmount = maxAmount,
+                MinAmount = minAmount
+            }
+        };
     }
 }

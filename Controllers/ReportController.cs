@@ -26,140 +26,35 @@ public class ReportController : Controller
     {
         ViewBag.Persons = _context.Persons.OrderBy(p => p.PersonName).ToList();
         ViewBag.Categories = _context.ProductCategories.OrderBy(c => c.Name).ToList();
-        ViewBag.Products = _context.Products.OrderBy(p => p.Name).ToList();
 
-        return View(new ReportFilterViewModel());
+        return View(new StatisticalReportQuery());
     }
 
-    [HttpPost]
-    [PermissionAuthorize("Report.Generate")]
-    public async Task<IActionResult> Generate(ReportFilterViewModel model)
+    [HttpGet]
+    public IActionResult GetData([FromQuery] StatisticalReportQuery query)
     {
-        // Null safety
-        if (string.IsNullOrWhiteSpace(model.ReportType))
-        {
-            TempData["Error"] = "نوع گزارش مشخص نشده است";
-            return RedirectToAction("Index");
-        }
-
-        // Parse Jalali dates to Gregorian
-        if (!string.IsNullOrWhiteSpace(model.FromDateJalali))
-            model.FromDate = PersianDateService.ParsePersianDate(model.FromDateJalali);
-
-        if (!string.IsNullOrWhiteSpace(model.ToDateJalali))
-            model.ToDate = PersianDateService.ParsePersianDate(model.ToDateJalali);
-
-        try
-        {
-            switch (model.ReportType)
-            {
-                case "factors":
-                    return await GenerateFactorReport(model);
-                case "products":
-                    return await GenerateProductReport(model);
-                case "sales":
-                    return await GenerateSalesReport(model);
-                default:
-                    TempData["Error"] = "نوع گزارش نامعتبر است";
-                    return RedirectToAction("Index");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Report Error: {ex}");
-            TempData["Error"] = $"خطا در تولید گزارش: {ex.Message}";
-            return RedirectToAction("Index");
-        }
+        var result = _reportService.GetStatisticalData(query);
+        return Json(result);
     }
 
-    private async Task<IActionResult> GenerateFactorReport(ReportFilterViewModel model)
+    [HttpGet]
+    public async Task<IActionResult> GetQuickStats()
     {
-        var query = _context.Factors
-            .Include(f => f.Person)
-            .Include(f => f.FactorItems)
-            .AsQueryable();
+        var totalFactors = await _context.Factors.CountAsync();
+        var totalPersons = await _context.Persons.CountAsync();
+        var totalProducts = await _context.Products.CountAsync();
+        var totalCategories = await _context.ProductCategories.CountAsync();
 
-        if (model.FromDate.HasValue)
-            query = query.Where(f => f.CreateDate >= model.FromDate.Value);
+        var factorItems = await _context.FactorItems.ToListAsync();
+        var totalSales = factorItems.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty);
 
-        if (model.ToDate.HasValue)
-            query = query.Where(f => f.CreateDate <= model.ToDate.Value.AddDays(1));
-
-        if (model.PersonId.HasValue)
-            query = query.Where(f => f.PersonId == model.PersonId.Value);
-
-        var factors = await query.OrderByDescending(f => f.CreateDate).ToListAsync();
-
-        var factorViewModels = factors.Select(f => new FactorViewModel
+        return Json(new
         {
-            Id = f.Id,
-            PersonId = f.PersonId,
-            PersonName = f.Person?.PersonName ?? "",
-            PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
-            TotalItems = f.FactorItems?.Count ?? 0
-        }).ToList();
-
-        var pdfBytes = _reportService.GenerateSalesReportPdf(model, factorViewModels);
-        return File(pdfBytes, "application/pdf", "FactorReport.pdf");
-    }
-
-    private async Task<IActionResult> GenerateProductReport(ReportFilterViewModel model)
-    {
-        var query = _context.Products
-            .Include(p => p.Category)
-            .AsQueryable();
-
-        if (model.CategoryId.HasValue)
-            query = query.Where(p => p.CategoryId == model.CategoryId.Value);
-
-        if (model.ProductId.HasValue)
-            query = query.Where(p => p.Id == model.ProductId.Value);
-
-        var products = await query.OrderBy(p => p.Name).ToListAsync();
-
-        var productViewModels = products.Select(p => new ProductViewModel
-        {
-            Id = p.Id,
-            Name = p.Name,
-            Code = p.Code,
-            CategoryId = p.CategoryId,
-            CategoryName = p.Category?.Name ?? ""
-        }).ToList();
-
-        var pdfBytes = _reportService.GenerateProductReportPdf(model, productViewModels);
-        return File(pdfBytes, "application/pdf", "ProductsReport.pdf");
-    }
-
-    private async Task<IActionResult> GenerateSalesReport(ReportFilterViewModel model)
-    {
-        var query = _context.Factors
-            .Include(f => f.Person)
-            .Include(f => f.FactorItems)
-            .AsQueryable();
-
-        if (model.FromDate.HasValue)
-            query = query.Where(f => f.CreateDate >= model.FromDate.Value);
-
-        if (model.ToDate.HasValue)
-            query = query.Where(f => f.CreateDate <= model.ToDate.Value.AddDays(1));
-
-        if (model.PersonId.HasValue)
-            query = query.Where(f => f.PersonId == model.PersonId.Value);
-
-        var factors = await query.OrderByDescending(f => f.CreateDate).ToListAsync();
-
-        var factorViewModels = factors.Select(f => new FactorViewModel
-        {
-            Id = f.Id,
-            PersonId = f.PersonId,
-            PersonName = f.Person?.PersonName ?? "",
-            PersianCreateDate = PersianDateService.ToPersian(f.CreateDate, true),
-            TotalAmount = f.FactorItems?.Where(fi => !fi.ParentId.HasValue).Sum(fi => fi.Price * fi.Qty) ?? 0,
-            TotalItems = f.FactorItems?.Count ?? 0
-        }).ToList();
-
-        var pdfBytes = _reportService.GenerateSalesReportPdf(model, factorViewModels);
-        return File(pdfBytes, "application/pdf", "SalesReport.pdf");
+            totalFactors,
+            totalPersons,
+            totalProducts,
+            totalCategories,
+            totalSales
+        });
     }
 }

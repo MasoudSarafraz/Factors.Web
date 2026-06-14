@@ -21,6 +21,7 @@ public interface IReportTemplateService
     Task DeleteTemplateAsync(int templateId);
     Task<List<TemplateInfo>> GetAvailableTemplatesAsync(ReportTemplateType? templateType = null);
     Task<List<FactorSearchResultItem>> SearchFactorsAsync(string? search, string? fromDateJalali, string? toDateJalali, int? personId);
+    Task<TemplatePreviewViewModel> GetTemplatePreviewAsync(int templateId);
 }
 
 public class ReportTemplateService : IReportTemplateService
@@ -871,5 +872,120 @@ public class ReportTemplateService : IReportTemplateService
         }
 
         return ms.ToArray();
+    }
+
+    public async Task<TemplatePreviewViewModel> GetTemplatePreviewAsync(int templateId)
+    {
+        var template = await _context.ReportTemplates
+            .Include(t => t.Markers)
+            .FirstOrDefaultAsync(t => t.Id == templateId);
+
+        if (template == null) throw new ArgumentException("قالب یافت نشد");
+        if (string.IsNullOrEmpty(template.FilePath) || !System.IO.File.Exists(template.FilePath))
+            throw new ArgumentException("فایل قالب یافت نشد");
+
+        var htmlContent = ConvertDocxToHtml(template.FilePath, template.Markers.ToList());
+
+        return new TemplatePreviewViewModel
+        {
+            TemplateId = template.Id,
+            TemplateName = template.Name,
+            TemplateType = template.TemplateType,
+            HtmlContent = htmlContent,
+            Markers = template.Markers.Select(m => new MarkerPreviewItem
+            {
+                MarkerId = m.Id,
+                MarkerName = m.MarkerName,
+                DataType = m.DataType,
+                DataSource = m.DataSource,
+                PropertyPath = m.PropertyPath,
+                ParentListMarker = m.ParentListMarker,
+                IsMapped = m.IsMapped
+            }).ToList()
+        };
+    }
+
+    private string ConvertDocxToHtml(string filePath, List<ReportTemplateMarker> markers)
+    {
+        var html = new System.Text.StringBuilder();
+
+        try
+        {
+            using var doc = WordprocessingDocument.Open(filePath, false);
+            var body = doc.MainDocumentPart?.Document.Body;
+            if (body == null) return "<p>فایل خالی است</p>";
+
+            var markerNames = markers.Select(m => m.MarkerName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var markerDict = markers.ToDictionary(m => m.MarkerName, m => m, StringComparer.OrdinalIgnoreCase);
+
+            html.Append("<div class='doc-preview'>");
+
+            foreach (var element in body.Elements())
+            {
+                if (element is Paragraph para)
+                {
+                    html.Append("<div class='doc-paragraph'>");
+                    html.Append(ProcessParagraphForPreview(para, markerNames, markerDict));
+                    html.Append("</div>");
+                }
+                else if (element is Table table)
+                {
+                    html.Append("<table class='doc-table'>");
+                    foreach (var row in table.Elements<TableRow>())
+                    {
+                        html.Append("<tr>");
+                        foreach (var cell in row.Elements<TableCell>())
+                        {
+                            html.Append("<td>");
+                            foreach (var p in cell.Elements<Paragraph>())
+                            {
+                                html.Append(ProcessParagraphForPreview(p, markerNames, markerDict));
+                            }
+                            html.Append("</td>");
+                        }
+                        html.Append("</tr>");
+                    }
+                    html.Append("</table>");
+                }
+            }
+
+            html.Append("</div>");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "خطا در تبدیل فایل Word به HTML");
+            html.Append($"<div class='alert alert-danger'>خطا در نمایش فایل: {ex.Message}</div>");
+        }
+
+        return html.ToString();
+    }
+
+    private string ProcessParagraphForPreview(Paragraph para, HashSet<string> markerNames, Dictionary<string, ReportTemplateMarker> markerDict)
+    {
+        var text = para.InnerText;
+        if (string.IsNullOrWhiteSpace(text)) return "<br/>";
+
+        // HTML-encode the text first, then replace markers with clickable badges
+        var encodedText = System.Net.WebUtility.HtmlEncode(text);
+
+        var result = System.Text.RegularExpressions.Regex.Replace(
+            encodedText,
+            @"\{(\w+)\}",
+            match =>
+            {
+                var markerName = match.Groups[1].Value;
+                if (markerNames.Contains(markerName))
+                {
+                    var marker = markerDict.ContainsKey(markerName) ? markerDict[markerName] : null;
+                    var isMapped = marker?.IsMapped ?? false;
+                    var cssClass = isMapped ? "marker-badge mapped" : "marker-badge unmapped";
+                    var dataSource = marker?.DataSource.ToString() ?? "";
+                    var propertyPath = marker?.PropertyPath ?? "";
+                    return $"<span class='{cssClass}' data-marker='{markerName}' data-datasource='{dataSource}' data-property='{propertyPath}' onclick='onMarkerClick(this)' title='کلیک برای اتصال'>{{{markerName}}}</span>";
+                }
+                return match.Value;
+            });
+
+        return result;
     }
 }

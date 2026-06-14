@@ -385,3 +385,27 @@ public static class AvailableProperties
         return map.TryGetValue(markerName, out var mapping) ? mapping : null;
     }
 }
+
+// ============================================================
+// Visual Template Preview Models
+// ============================================================
+
+public class TemplatePreviewViewModel
+{
+    public int TemplateId { get; set; }
+    public string TemplateName { get; set; } = string.Empty;
+    public ReportTemplateType TemplateType { get; set; }
+    public string HtmlContent { get; set; } = string.Empty;
+    public List<MarkerPreviewItem> Markers { get; set; } = new();
+}
+
+public class MarkerPreviewItem
+{
+    public int MarkerId { get; set; }
+    public string MarkerName { get; set; } = string.Empty;
+    public MarkerDataType DataType { get; set; }
+    public MarkerDataSource DataSource { get; set; }
+    public string? PropertyPath { get; set; }
+    public string? ParentListMarker { get; set; }
+    public bool IsMapped { get; set; }
+}
