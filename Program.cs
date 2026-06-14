@@ -66,59 +66,75 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
+        var conn = context.Database.GetDbConnection();
 
-        // If an inconsistent database exists (e.g. from old EnsureCreated runs), delete it
+        // Step 1: Check if database exists and is accessible
         if (await context.Database.CanConnectAsync())
         {
-            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-            if (appliedMigrations.Any())
+            await conn.OpenAsync();
+            try
             {
-                var conn = context.Database.GetDbConnection();
-                await conn.OpenAsync();
-                try
+                // Step 2: Check if __EFMigrationsHistory table exists
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'";
+                var historyExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+
+                if (!historyExists)
                 {
-                    using var cmd = conn.CreateCommand();
-                    // Check if core table exists when migrations claim to be applied
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
-                    var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+                    // Database was created via EnsureCreated (no migration history)
+                    // Stamp all existing migrations as already applied so MigrateAsync won't re-run them
+                    logger.LogInformation("Database exists without migration history. Stamping initial migrations...");
 
-                    // Check if AppSettings table exists when the AddAppSettings migration was applied
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='AppSettings'";
-                    var appSettingsTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
-
-                    var needsReset = false;
-                    if (!usersTableExists)
+                    var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                    if (pendingMigrations.Any())
                     {
-                        needsReset = true;
-                        logger.LogWarning("Inconsistent database detected: Users table missing. Recreating...");
-                    }
-                    else if (appliedMigrations.Contains("20240612120001_AddAppSettings") && !appSettingsTableExists)
-                    {
-                        needsReset = true;
-                        logger.LogWarning("Inconsistent database detected: AppSettings migration applied but table missing. Recreating...");
-                    }
-
-                    if (needsReset)
-                    {
-                        await conn.CloseAsync();
-                        await context.Database.EnsureDeletedAsync();
+                        // Insert migration history records for all pending migrations
+                        foreach (var migration in pendingMigrations)
+                        {
+                            using var insertCmd = conn.CreateCommand();
+                            insertCmd.CommandText = $"INSERT INTO __EFMigrationsHistory (MigrationId, ProductVersion) VALUES ('{migration}', '8.0.11')";
+                            await insertCmd.ExecuteNonQueryAsync();
+                        }
+                        logger.LogInformation("Stamped {Count} migrations as applied.", pendingMigrations.Count());
                     }
                 }
-                catch
+                else
                 {
-                    logger.LogWarning("Database health check failed. Recreating...");
+                    // Migration history exists - check for consistency
+                    var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+                    if (appliedMigrations.Any())
+                    {
+                        // Verify core tables exist
+                        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
+                        var usersTableExists = Convert.ToInt64(await cmd.ExecuteScalarAsync()) > 0;
+
+                        if (!usersTableExists)
+                        {
+                            // Inconsistent state - tables missing but migrations claim to be applied
+                            // Clear the migration history so MigrateAsync will re-apply everything
+                            logger.LogWarning("Inconsistent database detected: Users table missing. Clearing migration history for re-apply...");
+                            using var clearCmd = conn.CreateCommand();
+                            clearCmd.CommandText = "DELETE FROM __EFMigrationsHistory";
+                            await clearCmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Database health check encountered an issue. Will attempt migration anyway.");
+            }
+            finally
+            {
+                if (conn.State == System.Data.ConnectionState.Open)
                     await conn.CloseAsync();
-                    await context.Database.EnsureDeletedAsync();
-                }
-                finally
-                {
-                    if (conn.State == System.Data.ConnectionState.Open)
-                        await conn.CloseAsync();
-                }
             }
         }
 
+        // Step 3: Apply any pending migrations (this creates/updates tables as needed)
         await context.Database.MigrateAsync();
+
+        // Step 4: Seed data
         await SeedData.InitializeAsync(services);
         logger.LogInformation("Database initialized successfully.");
     }
